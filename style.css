@@ -138,8 +138,8 @@ h1 {
   font-family: 'Cormorant Garamond', serif;
   font-size: 3.5rem;
   font-weight: 500;
-  color: #f2f2f2;
-  text-shadow: 0 0 20px rgba(0, 0, 0, 0.7), 0 0 40px rgba(64, 128, 255, 0.3);
+  color: rgba(33, 66, 99, 1);
+  text-shadow: 0 0 20px rgba(0, 0, 0, 0.7), 0 0 40px rgba(33, 66, 99, 0.3);
   margin-bottom: 0.5rem;
   animation: titleGlow 4s ease-in-out infinite alternate;
 }
