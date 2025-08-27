@@ -3,38 +3,55 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Music Machines</title>
+  <title>Music Maker Index — Sketchy Ponderings</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;700&family=Source+Sans+Pro:wght@300;400&display=swap" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.js"></script>
 </head>
 <body>
   <div class="background"></div>
   <div class="particles" id="particles"></div>
 
   <div class="header">
-    <h1>8-Bit Beat Builder & EDM Machine</h1>
-    <p class="subtitle">Loop crafter ✨</p>
+    <h1>Sketchy Music Makers</h1>
+    <p class="subtitle">Explore musical magic in different flavors</p>
   </div>
 
   <div class="container">
-    <!-- Main Controls -->
     <div class="section">
-      <div class="section-title">
-           <!-- Velocity Editor -->
-    <div class="section">
-      <div class="section-title">Velocity Editor</div>
-      <div class="velocity-info">Click and drag on steps to adjust velocity. Right-click to reset to default.</div>
-      <div class="velocity-controls">
-        <button class="velocity-preset" ><h1><a href="https://watcheratthethreshold.github.io/music-maker/8bit">8-Bit</a></h1></button>
-       
-        <button class="velocity-preset" ><h1><a href="https://watcheratthethreshold.github.io/music-maker/edm/">EDM</a></h1></button>
+      <div class="section-title">Choose Your Generator</div>
+      <div class="controls-grid">
+        <div class="control-group">
+          <div class="control-label">8-Bit Beat Builder</div>
+          <a href="https://watcheratthethreshold.github.io/music-maker/8bit/" target="_blank" class="pattern-button">Launch 8-Bit</a>
+        </div>
+        <div class="control-group">
+          <div class="control-label">EDM Maker Pro</div>
+          <a href="https://watcheratthethreshold.github.io/music-maker/edm/" target="_blank" class="pattern-button">Launch EDM</a>
+        </div>
       </div>
     </div>
-      
-      </div>
-    </div>
- </div>
-  <script src="script.js"></script>
+  </div>
+
+  <script>
+    const container = document.getElementById('particles');
+    const colors = ['golden', 'purple', 'silver'];
+
+    for (let i = 0; i < 80; i++) {
+      const particle = document.createElement('div');
+      const colorType = colors[Math.floor(Math.random() * colors.length)];
+      particle.className = `particle ${colorType}`;
+
+      let size = Math.random() * 6 + 2;
+      particle.style.width = `${size}px`;
+      particle.style.height = `${size}px`;
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.animationDelay = Math.random() * 40 + 's';
+
+      const driftRange = Math.random() * 400 - 200;
+      particle.style.setProperty('--drift', driftRange + 'px');
+
+      container.appendChild(particle);
+    }
+  </script>
 </body>
 </html>
