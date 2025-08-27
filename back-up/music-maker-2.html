@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDM Maker — Sketchy Ponderings</title>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;700&family=Source+Sans+Pro:wght@300;400&display=swap" rel="stylesheet">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.js"></script>
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Source Sans Pro', sans-serif;
+      background-color: #0a0a0a;
+      color: #f0f0f0;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .background {
+      background: rgba(3, 3, 3, 0.4);
+      opacity: 1;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+    }
+
+    /* Enhanced floating particles */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0;
+    }
+
+    .particle.golden {
+      background: radial-gradient(circle, rgba(222, 184, 135, 0.8) 0%, rgba(222, 184, 135, 0.2) 70%, transparent 100%);
+      box-shadow: 0 0 8px rgba(222, 184, 135, 0.6), 0 0 16px rgba(222, 184, 135, 0.3);
+      animation: floatGolden 20s infinite linear;
+    }
+
+    .particle.purple {
+      background: radial-gradient(circle, rgba(138, 43, 226, 0.7) 0%, rgba(138, 43, 226, 0.2) 70%, transparent 100%);
+      box-shadow: 0 0 8px rgba(138, 43, 226, 0.5), 0 0 16px rgba(138, 43, 226, 0.2);
+      animation: floatPurple 25s infinite linear;
+    }
+
+    .particle.silver {
+      background: radial-gradient(circle, rgba(192, 192, 192, 0.6) 0%, rgba(192, 192, 192, 0.15) 70%, transparent 100%);
+      box-shadow: 0 0 6px rgba(192, 192, 192, 0.4), 0 0 12px rgba(192, 192, 192, 0.2);
+      animation: floatSilver 30s infinite linear;
+    }
+
+    @keyframes floatGolden {
+      0% { 
+        transform: translateY(100vh) translateX(0) rotate(0deg) scale(0.4); 
+        opacity: 0; 
+      }
+      8% { 
+        opacity: 0.8;
+        transform: translateY(92vh) translateX(15px) rotate(25deg) scale(0.7);
+      }
+      50% {
+        transform: translateY(50vh) translateX(var(--drift, 60px)) rotate(180deg) scale(1);
+        opacity: 0.6;
+      }
+      92% { 
+        opacity: 0.4; 
+      }
+      100% { 
+        transform: translateY(-10vh) translateX(calc(var(--drift, 60px) * 2.2)) rotate(360deg) scale(0.2); 
+        opacity: 0; 
+      }
+    }
+
+    @keyframes floatPurple {
+      0% { 
+        transform: translateY(100vh) translateX(0) rotate(0deg) scale(0.3); 
+        opacity: 0; 
+      }
+      10% { 
+        opacity: 0.9;
+        transform: translateY(90vh) translateX(20px) rotate(30deg) scale(0.6);
+      }
+      50% {
+        transform: translateY(50vh) translateX(var(--drift, 80px)) rotate(200deg) scale(1.1);
+        opacity: 0.7;
+      }
+      90% { 
+        opacity: 0.5; 
+      }
+      100% { 
+        transform: translateY(-15vh) translateX(calc(var(--drift, 80px) * 2.5)) rotate(380deg) scale(0.1); 
+        opacity: 0; 
+      }
+    }
+
+    @keyframes floatSilver {
+      0% { 
+        transform: translateY(100vh) translateX(0) rotate(0deg) scale(0.5); 
+        opacity: 0; 
+      }
+      6% { 
+        opacity: 0.7;
+        transform: translateY(94vh) translateX(10px) rotate(20deg) scale(0.8);
+      }
+      50% {
+        transform: translateY(50vh) translateX(var(--drift, 40px)) rotate(160deg) scale(0.9);
+        opacity: 0.5;
+      }
+      94% { 
+        opacity: 0.3; 
+      }
+      100% { 
+        transform: translateY(-8vh) translateX(calc(var(--drift, 40px) * 1.8)) rotate(340deg) scale(0.3); 
+        opacity: 0; 
+      }
+    }
+
+    .header {
+      text-align: center;
+      padding: 3rem 2rem 2rem;
+      backdrop-filter: blur(5px);
+      background: rgba(0, 0, 0, 0.2);
+      margin-bottom: 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 3.5rem;
+      font-weight: 500;
+      color: #f2f2f2;
+      text-shadow: 0 0 20px rgba(0, 0, 0, 0.7), 0 0 40px rgba(138, 43, 226, 0.2);
+      margin-bottom: 0.5rem;
+      animation: titleGlow 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes titleGlow {
+      0% { text-shadow: 0 0 20px rgba(0, 0, 0, 0.7), 0 0 40px rgba(138, 43, 226, 0.2); }
+      100% { text-shadow: 0 0 25px rgba(0, 0, 0, 0.8), 0 0 50px rgba(138, 43, 226, 0.4); }
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 300;
+      font-style: italic;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .section {
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(138, 43, 226, 0.6), transparent);
+    }
+
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2rem;
+      color: #f2f2f2;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    /* Control Panel */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .control-group {
+      background: rgba(138, 43, 226, 0.1);
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 10px;
+      padding: 1.5rem;
+      backdrop-filter: blur(5px);
+    }
+
+    .control-label {
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 1rem;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .play-button {
+      background: rgba(138, 43, 226, 0.3);
+      border: 2px solid rgba(138, 43, 226, 0.6);
+      color: #fff;
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 2rem;
+      margin: 0 auto 1rem;
+      position: relative;
+    }
+
+    .play-button:hover {
+      background: rgba(138, 43, 226, 0.5);
+      border-color: rgba(138, 43, 226, 0.8);
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(138, 43, 226, 0.4);
+    }
+
+    .play-button.playing {
+      background: rgba(138, 43, 226, 0.6);
+      border-color: rgba(138, 43, 226, 1);
+      animation: buttonPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes buttonPulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(138, 43, 226, 0.4); }
+      50% { transform: scale(1.02); box-shadow: 0 0 30px rgba(138, 43, 226, 0.6); }
+    }
+
+    .slider-container {
+      margin: 1rem 0;
+    }
+
+    .slider {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(138, 43, 226, 0.8);
+      border: 2px solid rgba(138, 43, 226, 1);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+    }
+
+    .slider::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 15px rgba(138, 43, 226, 0.7);
+    }
+
+    .slider-value {
+      text-align: center;
+      font-family: monospace;
+      color: rgba(138, 43, 226, 0.9);
+      margin-top: 0.5rem;
+    }
+
+    /* Step Sequencer */
+    .sequencer {
+      margin-top: 2rem;
+    }
+
+    .sequencer-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1rem;
+      gap: 0.5rem;
+    }
+
+    .track-label {
+      min-width: 80px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.8);
+      text-align: right;
+    }
+
+    .steps {
+      display: flex;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .step {
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .step:hover {
+      background: rgba(138, 43, 226, 0.2);
+      border-color: rgba(138, 43, 226, 0.4);
+      transform: scale(1.05);
+    }
+
+    .step.active {
+      background: rgba(138, 43, 226, 0.6);
+      border-color: rgba(138, 43, 226, 0.8);
+      box-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+    }
+
+    .step.current {
+      animation: stepPulse 0.15s ease;
+      box-shadow: 0 0 15px rgba(222, 184, 135, 0.7);
+    }
+
+    @keyframes stepPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .step.beat-1 { border-color: rgba(255, 100, 100, 0.5); }
+    .step.beat-5 { border-color: rgba(255, 200, 100, 0.5); }
+    .step.beat-9 { border-color: rgba(255, 100, 100, 0.5); }
+    .step.beat-13 { border-color: rgba(255, 200, 100, 0.5); }
+
+    /* Volume Controls */
+    .volume-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .volume-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .volume-label {
+      min-width: 60px;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .volume-slider {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(138, 43, 226, 0.8);
+      border: 1px solid rgba(138, 43, 226, 1);
+      cursor: pointer;
+    }
+
+    /* Effects Section */
+    .effects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .effect-control {
+      text-align: center;
+    }
+
+    .effect-name {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 0.5rem;
+    }
+
+    /* Pattern Selector */
+    .pattern-controls {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .pattern-button {
+      background: rgba(138, 43, 226, 0.2);
+      border: 1px solid rgba(138, 43, 226, 0.4);
+      color: rgba(255, 255, 255, 0.8);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .pattern-button:hover {
+      background: rgba(138, 43, 226, 0.3);
+      border-color: rgba(138, 43, 226, 0.6);
+      transform: translateY(-2px);
+    }
+
+    .pattern-button.active {
+      background: rgba(138, 43, 226, 0.5);
+      border-color: rgba(138, 43, 226, 0.8);
+      color: #fff;
+    }
+
+    .clear-button {
+      background: rgba(255, 100, 100, 0.2);
+      border: 1px solid rgba(255, 100, 100, 0.4);
+      color: rgba(255, 255, 255, 0.8);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-left: 1rem;
+    }
+
+    .clear-button:hover {
+      background: rgba(255, 100, 100, 0.3);
+      border-color: rgba(255, 100, 100, 0.6);
+      transform: translateY(-2px);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      h1 { font-size: 2.5rem; }
+      .container { padding: 1rem; }
+      .controls-grid { grid-template-columns: 1fr; }
+      .effects-grid { grid-template-columns: 1fr; }
+      .step { width: 30px; height: 30px; }
+      .track-label { min-width: 60px; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="background"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="header">
+    <h1>EDM Maker</h1>
+    <p class="subtitle">Craft beats in the spaces between sound & silence</p>
+  </div>
+
+  <div class="container">
+    <!-- Main Controls -->
+    <div class="section">
+      <div class="section-title">Rhythm Engine</div>
+      <div class="controls-grid">
+        <div class="control-group">
+          <div class="control-label">Transport</div>
+          <button class="play-button" id="playButton">▶</button>
+          <div class="slider-container">
+            <input type="range" class="slider" id="tempoSlider" min="60" max="180" value="120">
+            <div class="slider-value"><span id="tempoValue">120</span> BPM</div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">Master Volume</div>
+          <div class="slider-container">
+            <input type="range" class="slider" id="masterVolume" min="0" max="100" value="70">
+            <div class="slider-value"><span id="masterVolumeValue">70</span>%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pattern Controls -->
+      <div class="pattern-controls">
+        <button class="pattern-button active" data-pattern="0">Pattern A</button>
+        <button class="pattern-button" data-pattern="1">Pattern B</button>
+        <button class="clear-button" id="clearPattern">Clear</button>
+      </div>
+    </div>
+
+    <!-- Step Sequencer -->
+    <div class="section">
+      <div class="section-title">Step Sequencer</div>
+      <div class="sequencer" id="sequencer">
+        <!-- Will be populated by JavaScript -->
+      </div>
+      
+      <!-- Track Volumes -->
+      <div class="volume-controls">
+        <div class="volume-control">
+          <span class="volume-label">Kick</span>
+          <input type="range" class="volume-slider" id="kickVolume" min="0" max="100" value="80">
+        </div>
+        <div class="volume-control">
+          <span class="volume-label">Snare</span>
+          <input type="range" class="volume-slider" id="snareVolume" min="0" max="100" value="70">
+        </div>
+        <div class="volume-control">
+          <span class="volume-label">Hi-Hat</span>
+          <input type="range" class="volume-slider" id="hihatVolume" min="0" max="100" value="60">
+        </div>
+        <div class="volume-control">
+          <span class="volume-label">Bass</span>
+          <input type="range" class="volume-slider" id="bassVolume" min="0" max="100" value="75">
+        </div>
+      </div>
+    </div>
+
+    <!-- Effects -->
+    <div class="section">
+      <div class="section-title">Sonic Textures</div>
+      <div class="effects-grid">
+        <div class="effect-control">
+          <div class="effect-name">Reverb</div>
+          <input type="range" class="slider" id="reverbSlider" min="0" max="100" value="20">
+          <div class="slider-value"><span id="reverbValue">20</span>%</div>
+        </div>
+        <div class="effect-control">
+          <div class="effect-name">Delay</div>
+          <input type="range" class="slider" id="delaySlider" min="0" max="100" value="15">
+          <div class="slider-value"><span id="delayValue">15</span>%</div>
+        </div>
+        <div class="effect-control">
+          <div class="effect-name">Filter</div>
+          <input type="range" class="slider" id="filterSlider" min="200" max="8000" value="4000">
+          <div class="slider-value"><span id="filterValue">4000</span>Hz</div>
+        </div>
+        <div class="effect-control">
+          <div class="effect-name">Distortion</div>
+          <input type="range" class="slider" id="distortionSlider" min="0" max="100" value="0">
+          <div class="slider-value"><span id="distortionValue">0</span>%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Enhanced floating particles
+    const container = document.getElementById('particles');
+    const colors = ['golden', 'purple', 'silver'];
+    
+    for (let i = 0; i < 80; i++) {
+      const particle = document.createElement('div');
+      const colorType = colors[Math.floor(Math.random() * colors.length)];
+      particle.className = `particle ${colorType}`;
+      
+      let size = Math.random() * 6 + 2;
+      particle.style.width = `${size}px`;
+      particle.style.height = `${size}px`;
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.animationDelay = Math.random() * 40 + 's';
+      
+      const driftRange = Math.random() * 400 - 200;
+      particle.style.setProperty('--drift', driftRange + 'px');
+      
+      container.appendChild(particle);
+    }
+
+    // Audio setup
+    let isInitialized = false;
+    let isPlaying = false;
+    let currentStep = 0;
+    let currentPattern = 0;
+    
+    // Patterns storage
+    const patterns = [
+      {
+        kick: [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
+        snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+        hihat: [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+        bass: [1,0,0,1, 0,0,1,0, 1,0,0,1, 0,0,1,0]
+      },
+      {
+        kick: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
+        snare: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
+        hihat: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
+        bass: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0]
+      }
+    ];
+
+    const tracks = ['kick', 'snare', 'hihat', 'bass'];
+    
+    // Audio components (will be initialized when user clicks play)
+    let synths = {};
+    let effects = {};
+    let loop;
+
+    async function initializeAudio() {
+      if (isInitialized) return;
+      
+      await Tone.start();
+      
+      // Create synths for each track
+      synths.kick = new Tone.MembraneSynth({
+        pitchDecay: 0.05,
+        octaves: 10,
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4, attackCurve: 'exponential' }
+      });
+      
+      synths.snare = new Tone.NoiseSynth({
+        noise: { type: 'white' },
+        envelope: { attack: 0.005, decay: 0.1, sustain: 0 }
+      });
+      
+      synths.hihat = new Tone.NoiseSynth({
+        noise: { type: 'white' },
+        envelope: { attack: 0.005, decay: 0.05, sustain: 0 }
+      });
+      
+      synths.bass = new Tone.Synth({
+        oscillator: { type: 'sawtooth' },
+        envelope: { attack: 0.01, decay: 0.3, sustain: 0.4, release: 0.8 }
+      });
+
+      // Create effects
+      effects.reverb = new Tone.Reverb(1.5);
+      effects.delay = new Tone.FeedbackDelay(0.25, 0.3);
+      effects.filter = new Tone.Filter(4000, 'lowpass');
+      effects.distortion = new Tone.Distortion(0);
+
+      // Chain effects
+      const effectsChain = Tone.Destination;
+      synths.kick.chain(effects.filter, effects.distortion, effects.delay, effects.reverb, effectsChain);
+      synths.snare.chain(effects.filter, effects.distortion, effects.delay, effects.reverb, effectsChain);
+      synths.hihat.chain(effects.filter, effects.distortion, effects.delay, effects.reverb, effectsChain);
+      synths.bass.chain(effects.filter, effects.distortion, effects.delay, effects.reverb, effectsChain);
+
+      // Create the main loop
+      loop = new Tone.Loop(time => {
+        const pattern = patterns[currentPattern];
+        
+        // Trigger sounds based on pattern
+        if (pattern.kick[currentStep]) {
+          synths.kick.triggerAttackRelease('C1', '8n', time);
+        }
+        if (pattern.snare[currentStep]) {
+          synths.snare.triggerAttackRelease('8n', time);
+        }
+        if (pattern.hihat[currentStep]) {
+          synths.hihat.triggerAttackRelease('32n', time);
+        }
+        if (pattern.bass[currentStep]) {
+          synths.bass.triggerAttackRelease('C2', '8n', time);
+        }
+
+        // Update visual step indicator
+        updateStepIndicator();
+        
+        // Move to next step
+        currentStep = (currentStep + 1) % 16;
+      }, '16n');
+
+      isInitialized = true;
+    }
+
+    // Create sequencer UI
+    function createSequencer() {
+      const sequencer = document.getElementById('sequencer');
+      
+      tracks.forEach(track => {
+        const row = document.createElement('div');
+        row.className = 'sequencer-row';
+        
+        const label = document.createElement('div');
+        label.className = 'track-label';
+        label.textContent = track.charAt(0).toUpperCase() + track.slice(1);
+        row.appendChild(label);
+        
+        const steps = document.createElement('div');
+        steps.className = 'steps';
+        
+        for (let i = 0; i < 16; i++) {
+          const step = document.createElement('div');
+          step.className = 'step';
+          if (i % 4 === 0) step.classList.add(`beat-${i + 1}`);
+          step.dataset.track = track;
+          step.dataset.step = i;
+          
+          step.addEventListener('click', () => {
+            const pattern = patterns[currentPattern];
+            pattern[track][i] = pattern[track][i] ? 0 : 1;
+            updateSequencerDisplay();
+          });
+          
+          steps.appendChild(step);
+        }
+        
+        row.appendChild(steps);
+        sequencer.appendChild(row);
+      });
+      
+      updateSequencerDisplay();
+    }
+
+    function updateSequencerDisplay() {
+      const pattern = patterns[currentPattern];
+      tracks.forEach(track => {
+        pattern[track].forEach((active, i) => {
+          const step = document.querySelector(`[data-track="${track}"][data-step="${i}"]`);
+          step.classList.toggle('active', !!active);
+        });
+      });
+    }
+
+    function updateStepIndicator() {
+      // Remove current indicator
+      document.querySelectorAll('.step.current').forEach(step => {
+        step.classList.remove('current');
+      });
+      
+      // Add to current steps
+      tracks.forEach(track => {
+        const step = document.querySelector(`[data-track="${track}"][data-step="${currentStep}"]`);
+        if (step) step.classList.add('current');
+      });
+    }
+
+    // Event listeners
+    document.getElementById('playButton').addEventListener('click', async () => {
+      await initializeAudio();
+      
+      const button = document.getElementById('playButton');
+      
+      if (!isPlaying) {
+        loop.start(0);
+        Tone.Transport.start();
+        button.textContent = '⏸';
+        button.classList.add('playing');
+        isPlaying = true;
+      } else {
+        loop.stop();
+        Tone.Transport.stop();
+        button.textContent = '▶';
+        button.classList.remove('playing');
+        isPlaying = false;
+        currentStep = 0;
+        updateStepIndicator();
+      }
+    });
+
+    // Tempo control
+    const tempoSlider = document.getElementById('tempoSlider');
+    const tempoValue = document.getElementById('tempoValue');
+    
+    tempoSlider.addEventListener('input', (e) => {
+      Tone.Transport.bpm.value = e.target.value;
+      tempoValue.textContent = e.target.value;
+    });
+
+    // Master volume
+    const masterVolume = document.getElementById('masterVolume');
+    const masterVolumeValue = document.getElementById('masterVolumeValue');
+    
+    masterVolume.addEventListener('input', (e) => {
+      const volume = (e.target.value / 100) * 0.7 - 0.3; // Convert to dB range
+      Tone.Destination.volume.value = volume;
+      masterVolumeValue.textContent = e.target.value;
+    });
+
+    // Individual track volumes
+    ['kick', 'snare', 'hihat', 'bass'].forEach(track => {
+      const slider = document.getElementById(`${track}Volume`);
+      slider.addEventListener('input', async (e) => {
+        if (!isInitialized) await initializeAudio();
+        const volume = (e.target.value / 100) * 0.5 - 0.2;
+        synths[track].volume.value = volume;
+      });
+    });
+
+    // Effects controls
+    const effectControls = {
+      reverb: { element: document.getElementById('reverbSlider'), value: document.getElementById('reverbValue') },
+      delay: { element: document.getElementById('delaySlider'), value: document.getElementById('delayValue') },
+      filter: { element: document.getElementById('filterSlider'), value: document.getElementById('filterValue') },
+      distortion: { element: document.getElementById('distortionSlider'), value: document.getElementById('distortionValue') }
+    };
+
+    effectControls.reverb.element.addEventListener('input', async (e) => {
+      if (!isInitialized) await initializeAudio();
+      const wetness = e.target.value / 100;
+      effects.reverb.wet.value = wetness;
+      effectControls.reverb.value.textContent = e.target.value;
+    });
+
+    effectControls.delay.element.addEventListener('input', async (e) => {
+      if (!isInitialized) await initializeAudio();
+      const wetness = e.target.value / 100;
+      effects.delay.wet.value = wetness;
+      effectControls.delay.value.textContent = e.target.value;
+    });
+
+    effectControls.filter.element.addEventListener('input', async (e) => {
+      if (!isInitialized) await initializeAudio();
+      effects.filter.frequency.value = e.target.value;
+      effectControls.filter.value.textContent = e.target.value;
+    });
+
+    effectControls.distortion.element.addEventListener('input', async (e) => {
+      if (!isInitialized) await initializeAudio();
+      const amount = e.target.value / 100;
+      effects.distortion.distortion = amount;
+      effectControls.distortion.value.textContent = e.target.value;
+    });
+
+    // Pattern switching
+    document.querySelectorAll('.pattern-button').forEach(button => {
+      button.addEventListener('click', () => {
+        currentPattern = parseInt(button.dataset.pattern);
+        document.querySelectorAll('.pattern-button').forEach(b => b.classList.remove('active'));
+        button.classList.add('active');
+        updateSequencerDisplay();
+      });
+    });
+
+    // Clear pattern
+    document.getElementById('clearPattern').addEventListener('click', () => {
+      const pattern = patterns[currentPattern];
+      tracks.forEach(track => {
+        pattern[track] = new Array(16).fill(0);
+      });
+      updateSequencerDisplay();
+    });
+
+    // Initialize
+    createSequencer();
+    
+    // Load default pattern
+    patterns[0] = {
+      kick: [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
+      snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+      hihat: [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+      bass: [1,0,0,1, 0,0,1,0, 1,0,0,1, 0,0,1,0]
+    };
+    updateSequencerDisplay();
+  </script>
+</body>
+</html>

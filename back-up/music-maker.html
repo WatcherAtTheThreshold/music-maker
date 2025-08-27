@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Music Maker</title>
+  <script src="https://unpkg.com/tone@latest/build/Tone.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+      text-align: center;
+      padding: 2rem;
+    }
+    .control {
+      margin: 1rem auto;
+    }
+    input[type="range"] {
+      width: 200px;
+    }
+    label {
+      display: block;
+      margin-top: 0.5rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1.1rem;
+      background: #444;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>Music Maker</h1>
+
+  <div class="control">
+    <button id="play">Play / Stop</button>
+  </div>
+
+  <div class="control">
+    <input type="range" id="tempo" min="60" max="180" value="120">
+    <label for="tempo">Tempo: <span id="tempo-value">120</span> BPM</label>
+  </div>
+
+  <script>
+    const synth = new Tone.MembraneSynth().toDestination();
+    const loop = new Tone.Loop(time => {
+      synth.triggerAttackRelease("C2", "8n", time);
+    }, "4n");
+
+    let isPlaying = false;
+
+    document.getElementById("play").addEventListener("click", async () => {
+      await Tone.start();
+      if (!isPlaying) {
+        loop.start(0);
+        Tone.Transport.start();
+      } else {
+        loop.stop();
+        Tone.Transport.stop();
+      }
+      isPlaying = !isPlaying;
+    });
+
+    const tempoSlider = document.getElementById("tempo");
+    const tempoValue = document.getElementById("tempo-value");
+    tempoSlider.addEventListener("input", (e) => {
+      Tone.Transport.bpm.value = e.target.value;
+      tempoValue.textContent = e.target.value;
+    });
+  </script>
+</body>
+</html>

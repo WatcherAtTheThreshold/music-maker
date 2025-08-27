@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enhanced EDM Maker — Sketchy Ponderings</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;700&family=Source+Sans+Pro:wght@300;400&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.js"></script>
+</head>
+<body>
+  <div class="background"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="header">
+    <h1>Enhanced EDM Maker</h1>
+    <p class="subtitle">Craft beats & melodies in perfect harmony</p>
+  </div>
+
+  <div class="container">
+    <!-- Main Controls -->
+    <div class="section">
+      <div class="section-title">Rhythm Engine</div>
+      <div class="controls-grid">
+        <div class="control-group">
+          <div class="control-label">Transport</div>
+          <button class="play-button" id="playButton">▶</button>
+          <div class="slider-container">
+            <input type="range" class="slider" id="tempoSlider" min="60" max="180" value="120">
+            <div class="slider-value"><span id="tempoValue">120</span> BPM</div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">Master Volume</div>
+          <div class="slider-container">
+            <input type="range" class="slider" id="masterVolume" min="0" max="100" value="70">
+            <div class="slider-value"><span id="masterVolumeValue">70</span>%</div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">Swing</div>
+          <div class="slider-container">
+            <input type="range" class="slider" id="swingSlider" min="0" max="100" value="0">
+            <div class="slider-value"><span id="swingValue">0</span>%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Musical Controls -->
+      <div class="musical-controls">
+        <div class="control-group">
+          <div class="control-label">Key</div>
+          <select id="keySelect" class="key-select">
+            <option value="C">C Major</option>
+            <option value="Am">A Minor</option>
+            <option value="G">G Major</option>
+            <option value="Em">E Minor</option>
+            <option value="D">D Major</option>
+            <option value="Bm">B Minor</option>
+            <option value="F">F Major</option>
+            <option value="Dm">D Minor</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">Pattern Length</div>
+          <select id="patternLength" class="pattern-select">
+            <option value="16">16 Steps</option>
+            <option value="8">8 Steps</option>
+            <option value="32">32 Steps</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Pattern Controls -->
+      <div class="pattern-controls">
+        <button class="pattern-button active" data-pattern="0">Pattern A</button>
+        <button class="pattern-button" data-pattern="1">Pattern B</button>
+        <button class="clear-button" id="clearPattern">Clear</button>
+        <button class="randomize-button" id="randomizePattern">Randomize</button>
+      </div>
+    </div>
+
+    <!-- Step Sequencer -->
+    <div class="section">
+      <div class="section-title">Step Sequencer</div>
+      
+      <!-- Drum Tracks -->
+      <div class="track-category">
+        <h3 class="category-title">Drums</h3>
+        <div class="sequencer" id="drumSequencer">
+          <!-- Will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Melodic Tracks -->
+      <div class="track-category">
+        <h3 class="category-title">Melody</h3>
+        <div class="sequencer" id="melodySequencer">
+          <!-- Will be populated by JavaScript -->
+        </div>
+      </div>
+      
+      <!-- Track Volumes -->
+      <div class="volume-controls">
+        <div class="volume-section">
+          <h4>Drums</h4>
+          <div class="volume-group">
+            <div class="volume-control">
+              <span class="volume-label">Kick</span>
+              <input type="range" class="volume-slider" id="kickVolume" min="0" max="100" value="80">
+            </div>
+            <div class="volume-control">
+              <span class="volume-label">Snare</span>
+              <input type="range" class="volume-slider" id="snareVolume" min="0" max="100" value="70">
+            </div>
+            <div class="volume-control">
+              <span class="volume-label">Hi-Hat</span>
+              <input type="range" class="volume-slider" id="hihatVolume" min="0" max="100" value="60">
+            </div>
+            <div class="volume-control">
+              <span class="volume-label">Open Hat</span>
+              <input type="range" class="volume-slider" id="openhatVolume" min="0" max="100" value="50">
+            </div>
+            <div class="volume-control">
+              <span class="volume-label">Clap</span>
+              <input type="range" class="volume-slider" id="clapVolume" min="0" max="100" value="65">
+            </div>
+            <div class="volume-control">
+              <span class="volume-label">Crash</span>
+              <input type="range" class="volume-slider" id="crashVolume" min="0" max="100" value="60">
+            </div>
+          </div>
+        </div>
+
+        <div class="volume-section">
+          <h4>Melody</h4>
+          <div class="volume-group">
+            <div class="volume-control">
+              <span class="volume-label">Lead</span>
+              <input type="range" class="volume-slider" id="leadVolume" min="0" max="100" value="70">
+            </div>
+            <div class="volume-control">
+              <span class="volume-label">Pad</span>
+              <input type="range" class="volume-slider" id="padVolume" min="0" max="100" value="60">
+            </div>
+            <div class="volume-control">
+              <span class="volume-label">Bass</span>
+              <input type="range" class="volume-slider" id="bassVolume" min="0" max="100" value="75">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Effects -->
+    <div class="section">
+      <div class="section-title">Sonic Textures</div>
+      <div class="effects-grid">
+        <div class="effect-control">
+          <div class="effect-name">Reverb</div>
+          <input type="range" class="slider" id="reverbSlider" min="0" max="100" value="20">
+          <div class="slider-value"><span id="reverbValue">20</span>%</div>
+        </div>
+        <div class="effect-control">
+          <div class="effect-name">Delay</div>
+          <input type="range" class="slider" id="delaySlider" min="0" max="100" value="15">
+          <div class="slider-value"><span id="delayValue">15</span>%</div>
+        </div>
+        <div class="effect-control">
+          <div class="effect-name">Filter</div>
+          <input type="range" class="slider" id="filterSlider" min="200" max="8000" value="4000">
+          <div class="slider-value"><span id="filterValue">4000</span>Hz</div>
+        </div>
+        <div class="effect-control">
+          <div class="effect-name">Distortion</div>
+          <input type="range" class="slider" id="distortionSlider" min="0" max="100" value="0">
+          <div class="slider-value"><span id="distortionValue">0</span>%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Velocity Editor -->
+    <div class="section">
+      <div class="section-title">Velocity Editor</div>
+      <div class="velocity-info">Click and drag on steps to adjust velocity. Right-click to reset to default.</div>
+      <div class="velocity-controls">
+        <button class="velocity-preset" data-preset="soft">Soft</button>
+        <button class="velocity-preset" data-preset="medium">Medium</button>
+        <button class="velocity-preset" data-preset="hard">Hard</button>
+        <button class="velocity-preset" data-preset="accent">Accent Pattern</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
