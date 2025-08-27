@@ -3,11 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<<<<<<< HEAD
-  <title>8-Bit Beat Builder — Retro Loop Maker</title>
-=======
   <title>Music Maker Index — Sketchy Ponderings</title>
->>>>>>> 2f962d8312f90b4d25885f6b1e661c12d72b38e3
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;700&family=Source+Sans+Pro:wght@300;400&display=swap" rel="stylesheet" />
 </head>
@@ -16,249 +12,12 @@
   <div class="particles" id="particles"></div>
 
   <div class="header">
-<<<<<<< HEAD
-    <h1>8-Bit Beat Builder</h1>
-    <p class="subtitle">Craft nostalgic loops with retro charm ✨</p>
-=======
     <h1>Sketchy Music Makers</h1>
     <p class="subtitle">Explore musical magic in different flavors</p>
->>>>>>> 2f962d8312f90b4d25885f6b1e661c12d72b38e3
   </div>
 
   <div class="container">
     <div class="section">
-<<<<<<< HEAD
-      <div class="section-title">Game Engine</div>
-      <div class="controls-grid">
-        <div class="control-group">
-          <div class="control-label">Transport</div>
-          <button class="play-button" id="playButton">▶</button>
-          <div class="slider-container">
-            <input type="range" class="slider" id="tempoSlider" min="60" max="180" value="120">
-            <div class="slider-value"><span id="tempoValue">120</span> BPM</div>
-          </div>
-        </div>
-
-        <div class="control-group">
-          <div class="control-label">Master Volume</div>
-          <div class="slider-container">
-            <input type="range" class="slider" id="masterVolume" min="0" max="100" value="70">
-            <div class="slider-value"><span id="masterVolumeValue">70</span>%</div>
-          </div>
-        </div>
-
-        <div class="control-group">
-          <div class="control-label">Groove</div>
-          <div class="slider-container">
-            <input type="range" class="slider" id="swingSlider" min="0" max="100" value="0">
-            <div class="slider-value"><span id="swingValue">0</span>%</div>
-          </div>
-        </div>
-
-        <div class="control-group">
-          <div class="control-label">Ducking</div>
-          <div class="slider-container">
-            <input type="range" class="slider" id="sidechainSlider" min="0" max="100" value="50">
-            <div class="slider-value"><span id="sidechainValue">50</span>%</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Musical Controls -->
-      <div class="musical-controls">
-        <div class="control-group">
-          <div class="control-label">Scale</div>
-          <select id="keySelect" class="key-select">
-            <option value="C">C Major (Happy)</option>
-            <option value="Am">A Minor (Mysterious)</option>
-            <option value="G">G Major (Bright)</option>
-            <option value="Em">E Minor (Adventurous)</option>
-            <option value="D">D Major (Heroic)</option>
-            <option value="Bm">B Minor (Epic)</option>
-            <option value="F">F Major (Peaceful)</option>
-            <option value="Dm">D Minor (Dramatic)</option>
-          </select>
-        </div>
-
-        <div class="control-group">
-          <div class="control-label">Loop Length</div>
-          <select id="patternLength" class="pattern-select">
-            <option value="16">16 Steps</option>
-            <option value="8">8 Steps</option>
-            <option value="32">32 Steps</option>
-          </select>
-        </div>
-
-        <div class="control-group">
-          <div class="control-label">Melody Magic</div>
-          <select id="arpPattern" class="pattern-select">
-            <option value="off">Off</option>
-            <option value="up">Rising</option>
-            <option value="down">Falling</option>
-            <option value="updown">Bouncing</option>
-            <option value="random">Sparkles</option>
-          </select>
-          <div class="slider-container">
-            <input type="range" class="slider" id="arpSpeed" min="1" max="4" value="2" step="1">
-            <div class="slider-value">1/<span id="arpSpeedValue">16</span></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pattern Controls -->
-      <div class="pattern-controls">
-        <button class="pattern-button active" data-pattern="0">Loop A</button>
-        <button class="pattern-button" data-pattern="1">Loop B</button>
-        <button class="clear-button" id="clearPattern">Clear</button>
-        <button class="randomize-button" id="randomizePattern">Magic Dice</button>
-      </div>
-    </div>
-
-    <!-- Step Sequencer -->
-    <div class="section">
-      <div class="section-title">Step Sequencer</div>
-      
-      <!-- Drum Tracks -->
-      <div class="track-category">
-        <h3 class="category-title">Percussion</h3>
-        <div class="sequencer" id="drumSequencer">
-          <!-- Will be populated by JavaScript -->
-        </div>
-      </div>
-
-      <!-- Melodic Tracks -->
-      <div class="track-category">
-        <h3 class="category-title">Instruments</h3>
-        <div class="sequencer" id="melodySequencer">
-          <!-- Will be populated by JavaScript -->
-        </div>
-      </div>
-      
-      <!-- Track Volumes -->
-      <div class="volume-controls">
-        <div class="volume-section">
-          <h4>Percussion</h4>
-          <div class="volume-group">
-            <div class="volume-control">
-              <span class="volume-label">Bass Drum</span>
-              <div class="track-controls">
-                <button class="mute-btn" data-track="kick">M</button>
-                <button class="solo-btn" data-track="kick">S</button>
-              </div>
-              <input type="range" class="volume-slider" id="kickVolume" min="0" max="100" value="80">
-            </div>
-            <div class="volume-control">
-              <span class="volume-label">Snare</span>
-              <div class="track-controls">
-                <button class="mute-btn" data-track="snare">M</button>
-                <button class="solo-btn" data-track="snare">S</button>
-              </div>
-              <input type="range" class="volume-slider" id="snareVolume" min="0" max="100" value="70">
-            </div>
-            <div class="volume-control">
-              <span class="volume-label">Hi-Hat</span>
-              <div class="track-controls">
-                <button class="mute-btn" data-track="hihat">M</button>
-                <button class="solo-btn" data-track="hihat">S</button>
-              </div>
-              <input type="range" class="volume-slider" id="hihatVolume" min="0" max="100" value="60">
-            </div>
-            <div class="volume-control">
-              <span class="volume-label">Open Hat</span>
-              <div class="track-controls">
-                <button class="mute-btn" data-track="openhat">M</button>
-                <button class="solo-btn" data-track="openhat">S</button>
-              </div>
-              <input type="range" class="volume-slider" id="openhatVolume" min="0" max="100" value="50">
-            </div>
-            <div class="volume-control">
-              <span class="volume-label">Hand Clap</span>
-              <div class="track-controls">
-                <button class="mute-btn" data-track="clap">M</button>
-                <button class="solo-btn" data-track="clap">S</button>
-              </div>
-              <input type="range" class="volume-slider" id="clapVolume" min="0" max="100" value="65">
-            </div>
-            <div class="volume-control">
-              <span class="volume-label">Cymbal</span>
-              <div class="track-controls">
-                <button class="mute-btn" data-track="crash">M</button>
-                <button class="solo-btn" data-track="crash">S</button>
-              </div>
-              <input type="range" class="volume-slider" id="crashVolume" min="0" max="100" value="60">
-            </div>
-          </div>
-        </div>
-
-        <div class="volume-section">
-          <h4>Instruments</h4>
-          <div class="volume-group">
-            <div class="volume-control">
-              <span class="volume-label">Melody</span>
-              <div class="track-controls">
-                <button class="mute-btn" data-track="lead">M</button>
-                <button class="solo-btn" data-track="lead">S</button>
-              </div>
-              <input type="range" class="volume-slider" id="leadVolume" min="0" max="100" value="70">
-            </div>
-            <div class="volume-control">
-              <span class="volume-label">Harmony</span>
-              <div class="track-controls">
-                <button class="mute-btn" data-track="pad">M</button>
-                <button class="solo-btn" data-track="pad">S</button>
-              </div>
-              <input type="range" class="volume-slider" id="padVolume" min="0" max="100" value="60">
-            </div>
-            <div class="volume-control">
-              <span class="volume-label">Bass</span>
-              <div class="track-controls">
-                <button class="mute-btn" data-track="bass">M</button>
-                <button class="solo-btn" data-track="bass">S</button>
-              </div>
-              <input type="range" class="volume-slider" id="bassVolume" min="0" max="100" value="75">
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Effects -->
-    <div class="section">
-      <div class="section-title">Sound Effects</div>
-      <div class="effects-grid">
-        <div class="effect-control">
-          <div class="effect-name">Echo</div>
-          <input type="range" class="slider" id="reverbSlider" min="0" max="100" value="20">
-          <div class="slider-value"><span id="reverbValue">20</span>%</div>
-        </div>
-        <div class="effect-control">
-          <div class="effect-name">Delay</div>
-          <input type="range" class="slider" id="delaySlider" min="0" max="100" value="15">
-          <div class="slider-value"><span id="delayValue">15</span>%</div>
-        </div>
-        <div class="effect-control">
-          <div class="effect-name">Tone Filter</div>
-          <input type="range" class="slider" id="filterSlider" min="200" max="8000" value="4000">
-          <div class="slider-value"><span id="filterValue">4000</span>Hz</div>
-        </div>
-        <div class="effect-control">
-          <div class="effect-name">Crunch</div>
-          <input type="range" class="slider" id="distortionSlider" min="0" max="100" value="0">
-          <div class="slider-value"><span id="distortionValue">0</span>%</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Velocity Editor -->
-    <div class="section">
-      <div class="section-title">Beat Dynamics</div>
-      <div class="velocity-info">Click and drag on steps to adjust intensity. Right-click to reset to default.</div>
-      <div class="velocity-controls">
-        <button class="velocity-preset" data-preset="soft">Gentle</button>
-        <button class="velocity-preset" data-preset="medium">Balanced</button>
-        <button class="velocity-preset" data-preset="hard">Powerful</button>
-        <button class="velocity-preset" data-preset="accent">Dynamic</button>
-=======
       <div class="section-title">Choose Your Generator</div>
       <div class="controls-grid">
         <div class="control-group">
@@ -269,14 +28,10 @@
           <div class="control-label">EDM Maker Pro</div>
           <a href="https://watcheratthethreshold.github.io/music-maker/edm/" target="_blank" class="pattern-button">Launch EDM</a>
         </div>
->>>>>>> 2f962d8312f90b4d25885f6b1e661c12d72b38e3
       </div>
     </div>
   </div>
 
-<<<<<<< HEAD
-  <script src="script.js"></script>
-=======
   <script>
     const container = document.getElementById('particles');
     const colors = ['golden', 'purple', 'silver'];
@@ -298,6 +53,5 @@
       container.appendChild(particle);
     }
   </script>
->>>>>>> 2f962d8312f90b4d25885f6b1e661c12d72b38e3
 </body>
 </html>
