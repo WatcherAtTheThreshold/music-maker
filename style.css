@@ -41,20 +41,20 @@ body {
 }
 
 .particle.golden {
-  background: radial-gradient(circle, rgba(255, 215, 100, 0.8) 0%, rgba(255, 215, 100, 0.2) 70%, transparent 100%);
-  box-shadow: 0 0 8px rgba(255, 215, 100, 0.6), 0 0 16px rgba(255, 215, 100, 0.3);
+  background: radial-gradient(circle, rgba(222, 184, 135, 0.8) 0%, rgba(222, 184, 135, 0.2) 70%, transparent 100%);
+  box-shadow: 0 0 8px rgba(222, 184, 135, 0.6), 0 0 16px rgba(222, 184, 135, 0.3);
   animation: floatGolden 20s infinite linear;
 }
 
 .particle.purple {
-  background: radial-gradient(circle, rgba(64, 128, 255, 0.7) 0%, rgba(64, 128, 255, 0.2) 70%, transparent 100%);
-  box-shadow: 0 0 8px rgba(64, 128, 255, 0.5), 0 0 16px rgba(64, 128, 255, 0.2);
-  animation: floatBlue 25s infinite linear;
+  background: radial-gradient(circle, rgba(138, 43, 226, 0.7) 0%, rgba(138, 43, 226, 0.2) 70%, transparent 100%);
+  box-shadow: 0 0 8px rgba(138, 43, 226, 0.5), 0 0 16px rgba(138, 43, 226, 0.2);
+  animation: floatPurple 25s infinite linear;
 }
 
 .particle.silver {
-  background: radial-gradient(circle, rgba(150, 200, 255, 0.6) 0%, rgba(150, 200, 255, 0.15) 70%, transparent 100%);
-  box-shadow: 0 0 6px rgba(150, 200, 255, 0.4), 0 0 12px rgba(150, 200, 255, 0.2);
+  background: radial-gradient(circle, rgba(192, 192, 192, 0.6) 0%, rgba(192, 192, 192, 0.15) 70%, transparent 100%);
+  box-shadow: 0 0 6px rgba(192, 192, 192, 0.4), 0 0 12px rgba(192, 192, 192, 0.2);
   animation: floatSilver 30s infinite linear;
 }
 
@@ -80,7 +80,7 @@ body {
   }
 }
 
-@keyframes floatBlue {
+@keyframes floatPurple {
   0% { 
     transform: translateY(100vh) translateX(0) rotate(0deg) scale(0.3); 
     opacity: 0; 
@@ -139,14 +139,14 @@ h1 {
   font-size: 3.5rem;
   font-weight: 500;
   color: #f2f2f2;
-  text-shadow: 0 0 20px rgba(0, 0, 0, 0.7), 0 0 40px rgba(64, 128, 255, 0.3);
+  text-shadow: 0 0 20px rgba(0, 0, 0, 0.7), 0 0 40px rgba(138, 43, 226, 0.2);
   margin-bottom: 0.5rem;
   animation: titleGlow 4s ease-in-out infinite alternate;
 }
 
 @keyframes titleGlow {
-  0% { text-shadow: 0 0 20px rgba(0, 0, 0, 0.7), 0 0 40px rgba(64, 128, 255, 0.3); }
-  100% { text-shadow: 0 0 25px rgba(0, 0, 0, 0.8), 0 0 50px rgba(64, 128, 255, 0.5); }
+  0% { text-shadow: 0 0 20px rgba(0, 0, 0, 0.7), 0 0 40px rgba(138, 43, 226, 0.2); }
+  100% { text-shadow: 0 0 25px rgba(0, 0, 0, 0.8), 0 0 50px rgba(138, 43, 226, 0.4); }
 }
 
 .subtitle {
@@ -182,7 +182,7 @@ h1 {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, transparent, rgba(64, 128, 255, 0.7), transparent);
+  background: linear-gradient(90deg, transparent, rgba(138, 43, 226, 0.6), transparent);
 }
 
 .section-title {
@@ -202,8 +202,8 @@ h1 {
 }
 
 .control-group {
-  background: rgba(64, 128, 255, 0.15);
-  border: 1px solid rgba(64, 128, 255, 0.4);
+  background: rgba(138, 43, 226, 0.1);
+  border: 1px solid rgba(138, 43, 226, 0.3);
   border-radius: 10px;
   padding: 1.5rem;
   backdrop-filter: blur(5px);
@@ -229,7 +229,7 @@ h1 {
   width: 100%;
   padding: 0.8rem;
   background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(64, 128, 255, 0.6);
+  border: 1px solid rgba(138, 43, 226, 0.5);
   border-radius: 8px;
   color: #f0f0f0;
   font-size: 1rem;
@@ -238,8 +238,8 @@ h1 {
 }
 
 .key-select:hover, .pattern-select:hover {
-  border-color: rgba(64, 128, 255, 0.9);
-  background: rgba(64, 128, 255, 0.15);
+  border-color: rgba(138, 43, 226, 0.8);
+  background: rgba(138, 43, 226, 0.1);
 }
 
 .key-select option, .pattern-select option {
@@ -248,8 +248,8 @@ h1 {
 }
 
 .play-button {
-  background: rgba(64, 128, 255, 0.4);
-  border: 2px solid rgba(64, 128, 255, 0.7);
+  background: rgba(138, 43, 226, 0.3);
+  border: 2px solid rgba(138, 43, 226, 0.6);
   color: #fff;
   border-radius: 50%;
   width: 80px;
@@ -265,21 +265,21 @@ h1 {
 }
 
 .play-button:hover {
-  background: rgba(64, 128, 255, 0.6);
-  border-color: rgba(64, 128, 255, 0.9);
+  background: rgba(138, 43, 226, 0.5);
+  border-color: rgba(138, 43, 226, 0.8);
   transform: scale(1.05);
-  box-shadow: 0 0 20px rgba(64, 128, 255, 0.5);
+  box-shadow: 0 0 20px rgba(138, 43, 226, 0.4);
 }
 
 .play-button.playing {
-  background: rgba(64, 128, 255, 0.7);
-  border-color: rgba(64, 128, 255, 1);
+  background: rgba(138, 43, 226, 0.6);
+  border-color: rgba(138, 43, 226, 1);
   animation: buttonPulse 2s ease-in-out infinite;
 }
 
 @keyframes buttonPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(64, 128, 255, 0.5); }
-  50% { transform: scale(1.02); box-shadow: 0 0 30px rgba(64, 128, 255, 0.7); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(138, 43, 226, 0.4); }
+  50% { transform: scale(1.02); box-shadow: 0 0 30px rgba(138, 43, 226, 0.6); }
 }
 
 .slider-container {
@@ -301,21 +301,21 @@ h1 {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: rgba(64, 128, 255, 0.9);
-  border: 2px solid rgba(64, 128, 255, 1);
+  background: rgba(138, 43, 226, 0.8);
+  border: 2px solid rgba(138, 43, 226, 1);
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(64, 128, 255, 0.6);
+  box-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
 }
 
 .slider::-webkit-slider-thumb:hover {
   transform: scale(1.1);
-  box-shadow: 0 0 15px rgba(64, 128, 255, 0.8);
+  box-shadow: 0 0 15px rgba(138, 43, 226, 0.7);
 }
 
 .slider-value {
   text-align: center;
   font-family: monospace;
-  color: rgba(64, 128, 255, 1);
+  color: rgba(138, 43, 226, 0.9);
   margin-top: 0.5rem;
 }
 
@@ -327,10 +327,10 @@ h1 {
 .category-title {
   font-family: 'Cormorant Garamond', serif;
   font-size: 1.5rem;
-  color: rgba(255, 215, 100, 0.9);
+  color: rgba(222, 184, 135, 0.9);
   margin-bottom: 1rem;
   text-align: center;
-  border-bottom: 1px solid rgba(255, 215, 100, 0.3);
+  border-bottom: 1px solid rgba(222, 184, 135, 0.3);
   padding-bottom: 0.5rem;
 }
 
@@ -365,7 +365,7 @@ h1 {
   height: 40px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -376,20 +376,20 @@ h1 {
 }
 
 .step:hover {
-  background: rgba(64, 128, 255, 0.25);
-  border-color: rgba(64, 128, 255, 0.5);
+  background: rgba(138, 43, 226, 0.2);
+  border-color: rgba(138, 43, 226, 0.4);
   transform: scale(1.05);
 }
 
 .step.active {
-  background: rgba(64, 128, 255, 0.7);
-  border-color: rgba(64, 128, 255, 1);
-  box-shadow: 0 0 12px rgba(64, 128, 255, 0.6);
+  background: rgba(138, 43, 226, 0.6);
+  border-color: rgba(138, 43, 226, 0.8);
+  box-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
 }
 
 .step.current {
   animation: stepPulse 0.15s ease;
-  box-shadow: 0 0 15px rgba(255, 215, 100, 0.8);
+  box-shadow: 0 0 15px rgba(222, 184, 135, 0.7);
 }
 
 @keyframes stepPulse {
@@ -398,10 +398,10 @@ h1 {
   100% { transform: scale(1); }
 }
 
-.step.beat-1 { border-color: rgba(100, 200, 255, 0.6); }
-.step.beat-5 { border-color: rgba(150, 220, 255, 0.5); }
-.step.beat-9 { border-color: rgba(100, 200, 255, 0.6); }
-.step.beat-13 { border-color: rgba(150, 220, 255, 0.5); }
+.step.beat-1 { border-color: rgba(255, 100, 100, 0.5); }
+.step.beat-5 { border-color: rgba(255, 200, 100, 0.5); }
+.step.beat-9 { border-color: rgba(255, 100, 100, 0.5); }
+.step.beat-13 { border-color: rgba(255, 200, 100, 0.5); }
 
 /* Melodic Steps */
 .step.melodic {
@@ -418,9 +418,9 @@ h1 {
 }
 
 .step.melodic.active {
-  background: rgba(255, 215, 100, 0.7);
-  border-color: rgba(255, 215, 100, 1);
-  box-shadow: 0 0 12px rgba(255, 215, 100, 0.6);
+  background: rgba(222, 184, 135, 0.6);
+  border-color: rgba(222, 184, 135, 0.8);
+  box-shadow: 0 0 10px rgba(222, 184, 135, 0.5);
 }
 
 /* Velocity indicator */
@@ -436,7 +436,7 @@ h1 {
 
 .velocity-fill {
   height: 100%;
-  background: linear-gradient(90deg, rgba(64, 128, 255, 0.6), rgba(100, 200, 255, 0.8), rgba(255, 215, 100, 1));
+  background: linear-gradient(90deg, rgba(0, 255, 0, 0.6), rgba(255, 255, 0, 0.8), rgba(255, 0, 0, 1));
   border-radius: 2px;
   width: var(--velocity, 70%);
   transition: width 0.2s ease;
@@ -454,7 +454,7 @@ h1 {
 }
 
 .volume-section h4 {
-  color: rgba(255, 215, 100, 0.9);
+  color: rgba(222, 184, 135, 0.9);
   margin-bottom: 1rem;
   text-align: center;
   font-family: 'Cormorant Garamond', serif;
@@ -540,8 +540,8 @@ h1 {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: rgba(64, 128, 255, 0.9);
-  border: 1px solid rgba(64, 128, 255, 1);
+  background: rgba(138, 43, 226, 0.8);
+  border: 1px solid rgba(138, 43, 226, 1);
   cursor: pointer;
 }
 
@@ -585,8 +585,8 @@ h1 {
 }
 
 .pattern-button, .clear-button, .randomize-button {
-  background: rgba(64, 128, 255, 0.25);
-  border: 1px solid rgba(64, 128, 255, 0.5);
+  background: rgba(138, 43, 226, 0.2);
+  border: 1px solid rgba(138, 43, 226, 0.4);
   color: rgba(255, 255, 255, 0.8);
   padding: 0.5rem 1rem;
   border-radius: 8px;
@@ -596,14 +596,14 @@ h1 {
 }
 
 .pattern-button:hover, .clear-button:hover, .randomize-button:hover {
-  background: rgba(64, 128, 255, 0.4);
-  border-color: rgba(64, 128, 255, 0.7);
+  background: rgba(138, 43, 226, 0.3);
+  border-color: rgba(138, 43, 226, 0.6);
   transform: translateY(-2px);
 }
 
 .pattern-button.active {
-  background: rgba(64, 128, 255, 0.6);
-  border-color: rgba(64, 128, 255, 1);
+  background: rgba(138, 43, 226, 0.5);
+  border-color: rgba(138, 43, 226, 0.8);
   color: #fff;
 }
 
@@ -643,8 +643,8 @@ h1 {
 }
 
 .velocity-preset {
-  background: rgba(255, 215, 100, 0.25);
-  border: 1px solid rgba(255, 215, 100, 0.5);
+  background: rgba(222, 184, 135, 0.2);
+  border: 1px solid rgba(222, 184, 135, 0.4);
   color: rgba(255, 255, 255, 0.8);
   padding: 0.5rem 1rem;
   border-radius: 8px;
@@ -654,8 +654,8 @@ h1 {
 }
 
 .velocity-preset:hover {
-  background: rgba(255, 215, 100, 0.4);
-  border-color: rgba(255, 215, 100, 0.7);
+  background: rgba(222, 184, 135, 0.3);
+  border-color: rgba(222, 184, 135, 0.6);
   transform: translateY(-2px);
 }
 
