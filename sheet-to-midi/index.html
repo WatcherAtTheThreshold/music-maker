@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sheet Music → MIDI (Minimal Editor)</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --panel: #121821;
+    --ink: #e8f0ff;
+    --muted: #92a2bd;
+    --accent: #64b5f6;
+    --accent-2: #a5d6a7;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; font: 14px/1.35 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
+    color: var(--ink); background: radial-gradient(1200px 800px at 20% -10%, #1a2533 0%, var(--bg) 60%);
+  }
+  .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  header h1 { font-size: 18px; margin: 0 12px 0 0; letter-spacing: .3px; }
+  .panel { background: rgba(18,24,33,.85); border: 1px solid #1e2a3a; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03); }
+
+  .controls { padding: 12px; display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); gap: 8px; align-items: center; }
+  .controls label { font-size: 12px; color: var(--muted); }
+  .controls .cell { display: grid; gap: 6px; }
+  .controls .cell > *:not(label) { height: 34px; border: 1px solid #273246; border-radius: 10px; padding: 6px 10px; background: #0e141c; color: var(--ink); }
+  .controls button {
+    cursor: pointer; border-color: #2f3c52; background: linear-gradient(180deg,#162131,#0f1723); transition: transform .06s ease, outline-color .2s; outline: 0;
+  }
+  .controls button:hover { transform: translateY(-1px); }
+  .controls button.primary { background: linear-gradient(180deg, #1a365d, #14253a); border-color: #22456f; }
+  .controls button.green { background: linear-gradient(180deg, #1c3c2a, #13281e); border-color: #265c3f; }
+  .controls .sep { height: 1px; grid-column: 1/-1; background: #1f2a3a; margin: 4px 0; }
+
+  .staff-wrap { padding: 14px; }
+  #staff { width: 100%; height: 420px; display: block; }
+  .legend { padding: 10px 14px 16px; color: var(--muted); font-size: 12px; }
+  .legend b { color: var(--ink); }
+  .footer { color: var(--muted); font-size: 12px; text-align: center; padding: 14px; }
+
+  .badge { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; border:1px solid #243148; background:#0e1622; color:var(--muted)}
+  .badge .dot{ width:10px; height:10px; border-radius:50%; background:var(--accent)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <span class="badge"><span class="dot"></span> Minimal Staff Editor</span>
+      <h1>Sheet Music → MIDI</h1>
+    </header>
+
+    <section class="panel controls" id="controls">
+      <div class="cell" style="grid-column: span 2; min-width: 120px">
+        <label for="bpm">Tempo (BPM)</label>
+        <input id="bpm" type="number" value="100" min="30" max="240" />
+      </div>
+      <div class="cell" style="grid-column: span 2; min-width: 140px">
+        <label>Snap</label>
+        <select id="snap">
+          <option value="1">Whole</option>
+          <option value="2">Half</option>
+          <option value="4" selected>Quarter</option>
+          <option value="8">Eighth</option>
+          <option value="16">Sixteenth</option>
+        </select>
+      </div>
+      <div class="cell" style="grid-column: span 2; min-width: 140px">
+        <label>Accidental</label>
+        <select id="accidental">
+          <option value="0" selected>Natural</option>
+          <option value="1">Sharp</option>
+          <option value="-1">Flat</option>
+        </select>
+      </div>
+      <div class="cell" style="grid-column: span 2; min-width: 140px">
+        <label>Tool</label>
+        <select id="tool">
+          <option value="note" selected>Place note</option>
+          <option value="erase">Erase</option>
+        </select>
+      </div>
+      <div class="cell" style="grid-column: span 4; display:flex; gap:8px; align-items:end; justify-content:flex-end">
+        <button id="undo">Undo</button>
+        <button id="clear">Clear</button>
+        <button id="play" class="green">Play</button>
+        <button id="download" class="primary">Export MIDI</button>
+      </div>
+      <div class="sep"></div>
+      <div class="cell" style="grid-column: 1 / -1">
+        <label>Tip</label>
+        <div style="color:var(--muted)">Click on the staff to add notes. This prototype supports a <b>treble clef</b>, key of C, and a single voice. Notes snap to the chosen subdivision. Drag to move within a beat; click a note to select; press <kbd>Delete</kbd> to remove.</div>
+      </div>
+    </section>
+
+    <section class="panel staff-wrap">
+      <svg id="staff" viewBox="0 0 1200 420" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="legend">Range supported: <b>C4</b> (middle C) up to <b>A5</b>. Time signature: <b>4/4</b>. Measures visible: <b>4</b> (expandable in code). Exported MIDI is <b>Format 0</b>, one track with Note On/Off and tempo meta.</div>
+    </section>
+
+    <div class="footer">Built with plain HTML/CSS/JS. No external libraries. © You ♥</div>
+  </div>
+
+<script>
+(() => {
+  // ------------------------------
+  // Basic musical constants
+  // ------------------------------
+  const TPQ = 480;        // ticks per quarter note for MIDI
+  const MEASURES = 4;     // visible measures
+  const TIME_SIG_NUM = 4; // 4/4
+  const TIME_SIG_DEN = 4;
+  const TOTAL_BEATS = MEASURES * TIME_SIG_NUM;
+
+  // Staff layout (SVG coords)
+  const svg = document.getElementById('staff');
+  const W = 1200, H = 420; // viewBox units
+  const PADDING = { l: 40, r: 30, t: 30, b: 30 };
+  const innerW = W - PADDING.l - PADDING.r;
+  const innerH = H - PADDING.t - PADDING.b;
+
+  const staffTop = PADDING.t + 80;
+  const staffGap = 12; // distance between staff lines
+  const staffLines = 5;
+  const staffBottom = staffTop + (staffLines - 1) * staffGap;
+  const staffHeight = staffBottom - staffTop;
+
+  // Pitch mapping (treble clef). We'll support C4..A5
+  // Staff reference: E4 is line 1 (bottom), F4 space, G4 line, A4 space, B4 line, C5 space above, ...
+  // We'll compute Y per diatonic step (line/space), and map to MIDI.
+  const PITCHES = [
+    // name, midi, diatonicIndex (relative to E4 line), accidentalOffset
+    // We'll fill dynamically from C4..A5
+  ];
+  const NOTE_ORDER = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+  function midiToName(n) {
+    const name = NOTE_ORDER[n % 12];
+    const oct = Math.floor(n/12) - 1;
+    return name + oct;
+  }
+
+  // Build pitches
+  // E4 midi = 64; C4 midi = 60; A5 midi = 81
+  for (let m = 60; m <= 81; m++) PITCHES.push(m);
+
+  // Map midi -> diatonic step index (relative to E4 line) and y position
+  // We'll approximate by mapping note letter positions along staff with 1 step = staffGap/2
+  function midiToStaffY(midi) {
+    // Convert MIDI to letter index relative to E4 using semitone -> diatonic approx.
+    // We'll precompute by counting scale steps between E4 and target using chromatic mapping.
+    // Simpler: approximate via piano key distance and a mapping table for line/space centers.
+
+    // Reference: Indices where each natural pitch sits relative to E4 (line index 0)
+    const naturals = { 'C': -2, 'D': -1, 'E': 0, 'F': 1, 'G': 2, 'A': 3, 'B': 4 };
+
+    const semitone = midi % 12;
+    const oct = Math.floor(midi / 12) - 1;
+    const baseName = NOTE_ORDER[semitone];
+    const natural = baseName[0];
+    const acc = baseName.length > 1 ? (baseName.includes('#') ? 1 : -1) : 0;
+
+    // Compute diatonic steps from E4
+    // First, get the natural midi for the same note without accidental
+    const NAT_TO_SEMI = { 'C':0,'D':2,'E':4,'F':5,'G':7,'A':9,'B':11 };
+    const naturalSemi = NAT_TO_SEMI[natural];
+    const naturalMidi = (oct+1)*12 + naturalSemi; // since octave formula uses +1
+
+    // Count diatonic steps between E4 (64) natural and this natural pitch
+    // Move by letter steps E->F->G->A->B->C->D->E ...
+    function diatonicDistance(m1, m2, letter1, letter2) {
+      // brute force step along chromatic to find letter-count distance approximately
+      const LETTERS = ['C','D','E','F','G','A','B'];
+      function nextLetter(l){ return LETTERS[(LETTERS.indexOf(l)+1)%7]; }
+      // Build actual midi for naturals along the path
+      let steps = 0;
+      let L = letter1; let midiN = m1;
+      const semis = NAT_TO_SEMI;
+      while (!(L===letter2 && midiN===m2)){
+        const nextL = nextLetter(L);
+        // compute octave wrap
+        let oct = Math.floor(midiN/12) - 1; // rough
+        // find next natural midi >= current natural midi
+        let candidate = (Math.floor((midiN+1)/12))*12 + semis[nextL];
+        while (candidate <= midiN) candidate += 12;
+        L = nextL; midiN = candidate; steps++;
+        if (steps>100) break;
+      }
+      return steps * ( (m2>=m1)? 1 : -1 );
+    }
+    const stepsFromE4 = diatonicDistance(64, naturalMidi, 'E', natural);
+    // Each diatonic step is half a staffGap (lines & spaces alternating)
+    let y = staffBottom - stepsFromE4 * (staffGap/2);
+
+    // Apply small visual offset for sharps/flats (don’t change Y; we draw accidental glyph)
+    return y;
+  }
+
+  // Quantize Y to closest supported MIDI between C4..A5
+  function quantizeYToMidi(y) {
+    let best = 60; let bestDist = 1e9;
+    for (let m of PITCHES){
+      const yy = midiToStaffY(m);
+      const d = Math.abs(y-yy);
+      if (d < bestDist){ bestDist = d; best = m; }
+    }
+    return best;
+  }
+
+  // Time grid helpers
+  function xForBeat(beat){ // beat in [0..TOTAL_BEATS]
+    return PADDING.l + (beat / TOTAL_BEATS) * innerW;
+  }
+  function beatForX(x){
+    const rel = (x - PADDING.l) / innerW;
+    const rawBeat = rel * TOTAL_BEATS;
+    const snap = parseInt(document.getElementById('snap').value,10);
+    const step = 1 / (snap/1); // e.g., 1/4 -> 0.25 beats? Wait: quarter = 1 beat
+    // For Snap = 4 (quarter), duration per step = 1 beat; for 8 -> 0.5 beat ...
+    const stepBeat = 4 / snap; // 4/4 time: 4 quarters per bar; if snap=8 -> each step = 0.5
+    return Math.max(0, Math.min(TOTAL_BEATS, Math.round(rawBeat/stepBeat)*stepBeat));
+  }
+
+  // State
+  let notes = []; // { id, midi, startBeat, durBeats, accidental: -1|0|1 }
+  let selectedId = null;
+  let nextId = 1;
+  const history = [];
+
+  function pushHistory(){ history.push(JSON.stringify(notes)); if (history.length>100) history.shift(); }
+  function undo(){ if (history.length){ notes = JSON.parse(history.pop()); selectedId = null; render(); }}
+
+  // Rendering
+  function render(){
+    const g = [];
+
+    // Background
+    g.push(`<defs>
+      <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity=".6"/>
+      </filter>
+    </defs>`);
+
+    // Panel bg
+    g.push(`<rect x="${PADDING.l-18}" y="${staffTop-40}" width="${innerW+36}" height="${staffHeight+80}" rx="14" ry="14" fill="#0d1320" stroke="#1f2a3a"/>`);
+
+    // Measure grid
+    for (let i=0; i<MEASURES; i++){
+      const x0 = xForBeat(i*4), x1 = xForBeat((i+1)*4);
+      g.push(`<rect x="${x0}" y="${staffTop-18}" width="${x1-x0}" height="${staffHeight+36}" fill="${i%2? '#0b1220':'#0a101a'}" opacity=".45"/>`);
+    }
+
+    // Staff lines
+    for (let i=0; i<staffLines; i++){
+      const y = staffTop + i*staffGap;
+      g.push(`<line x1="${PADDING.l}" y1="${y}" x2="${W-PADDING.r}" y2="${y}" stroke="#cfe0ff" stroke-opacity=".7" stroke-width="1" />`);
+    }
+
+    // Beat ticks
+    for (let b=0; b<=TOTAL_BEATS; b++){
+      const x = xForBeat(b);
+      const isBar = (b % TIME_SIG_NUM)===0;
+      g.push(`<line x1="${x}" y1="${staffTop-18}" x2="${x}" y2="${staffBottom+18}" stroke="${isBar? '#6aa2ff':'#35507a'}" stroke-opacity="${isBar? .8:.35}" stroke-width="${isBar? 1.5:1}" />`);
+    }
+
+    // Clef (simple G-clef glyph approximation)
+    g.push(`<text x="${PADDING.l-26}" y="${staffTop + staffGap*3.2}" fill="#cfe0ff" font-size="48" font-family="'Segoe UI Symbol', 'Noto Emoji', sans-serif">𝄞</text>`);
+
+    // Notes
+    for (const n of notes){
+      const x = xForBeat(n.startBeat) + 10; // slight inset
+      const y = midiToStaffY(n.midi);
+      const w = 14, h = 10;
+      const sel = n.id===selectedId;
+      // ledger lines if needed
+      // Below E4 (64): draw ledger at C4,D4; Above F5 (77): etc.
+      function ledgerYFor(m){
+        const ly = [];
+        // add lines every line step outside staff bounds
+        const yLineE4 = midiToStaffY(64);
+        const yLineF5 = midiToStaffY(77);
+        const yNote = midiToStaffY(m);
+        if (yNote>staffBottom){
+          // below
+          for (let mm=64-2; mm>=60; mm-=2){ // D4 line-ish to C4 line-ish
+            const yy = midiToStaffY(mm);
+            if (yy>=staffBottom+4 && yNote>=yy-2) ly.push(yy);
+          }
+        } else if (yNote<staffTop){
+          for (let mm=77+2; mm<=81; mm+=2){
+            const yy = midiToStaffY(mm);
+            if (yy<=staffTop-4 && yNote<=yy+2) ly.push(yy);
+          }
+        }
+        return ly;
+      }
+      for (const ly of ledgerYFor(n.midi)){
+        g.push(`<line x1="${x-8}" y1="${ly}" x2="${x+8}" y2="${ly}" stroke="#cfe0ff" stroke-width="1.2" />`);
+      }
+
+      // accidental
+      if (n.accidental===1){
+        g.push(`<text x="${x-16}" y="${y+4}" fill="#cfe0ff" font-size="16">#</text>`);
+      } else if (n.accidental===-1){
+        g.push(`<text x="${x-16}" y="${y+4}" fill="#cfe0ff" font-size="16">♭</text>`);
+      }
+
+      // notehead
+      g.push(`<ellipse cx="${x}" cy="${y}" rx="${w}" ry="${h}" fill="${sel? '#a5d6a7':'#cfe0ff'}" stroke="#7fa2c4" stroke-width="1" filter="url(#soft)" />`);
+
+      // stem (up for notes below B4, down otherwise)
+      const up = n.midi < 71; // B4 = 71
+      if (up){
+        g.push(`<line x1="${x+w-2}" y1="${y}" x2="${x+w-2}" y2="${y-28}" stroke="#cfe0ff" stroke-width="1.5" />`);
+      } else {
+        g.push(`<line x1="${x-w+2}" y1="${y}" x2="${x-w+2}" y2="${y+28}" stroke="#cfe0ff" stroke-width="1.5" />`);
+      }
+
+      // flags/beams omitted; duration indicated by tail marker under note
+      const durTxt = durationText(n.durBeats);
+      g.push(`<text x="${x-6}" y="${y+24}" fill="#7fa2c4" font-size="10">${durTxt}</text>`);
+    }
+
+    svg.innerHTML = g.join('\n');
+  }
+
+  function durationText(d){
+    if (d>=4) return 'w';
+    if (d>=2) return 'h';
+    if (d>=1) return 'q';
+    if (d>=0.5) return 'e';
+    return 's';
+  }
+
+  // Interaction
+  svg.addEventListener('mousedown', (e) => {
+    const pt = clientPoint(e);
+    const tool = document.getElementById('tool').value;
+    const acc = parseInt(document.getElementById('accidental').value,10);
+    if (pt.x < PADDING.l || pt.x>W-PADDING.r) return;
+
+    const beat = beatForX(pt.x);
+    const midi = quantizeYToMidi(pt.y);
+
+    // find if clicking on an existing note (nearby)
+    const near = notes.find(n => Math.abs(n.startBeat-beat)<1e-6 && Math.abs(midiToStaffY(n.midi)-midiToStaffY(midi))<8);
+
+    if (tool==='erase'){
+      if (near){ pushHistory(); notes = notes.filter(n=>n!==near); selectedId=null; render(); }
+      return;
+    }
+
+    if (near){ // select
+      selectedId = near.id; render(); return;
+    }
+
+    pushHistory();
+    const snap = parseInt(document.getElementById('snap').value,10);
+    const durBeats = 4 / snap; // e.g., 4/4, snap=4 -> 1 beat
+    const n = { id: nextId++, midi, startBeat: beat, durBeats, accidental: acc };
+    notes.push(n);
+    selectedId = n.id;
+    render();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key==='Delete' || e.key==='Backspace'){
+      if (selectedId!=null){ pushHistory(); notes = notes.filter(n=>n.id!==selectedId); selectedId=null; render(); }
+    }
+    if (e.key==='z' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); undo(); }
+  });
+
+  document.getElementById('undo').addEventListener('click', undo);
+  document.getElementById('clear').addEventListener('click', () => { pushHistory(); notes = []; selectedId=null; render(); });
+
+  // Playback via WebAudio (sine beep per note)
+  let audio = null;
+  function play(){
+    if (!audio) audio = new (window.AudioContext||window.webkitAudioContext)();
+    if (!notes.length) return;
+    const bpm = parseInt(document.getElementById('bpm').value,10);
+    const secPerBeat = 60 / bpm;
+    const startT = audio.currentTime + 0.1;
+    for (const n of notes){
+      const t0 = startT + n.startBeat * secPerBeat;
+      const t1 = t0 + n.durBeats * secPerBeat;
+      const freq = 440 * Math.pow(2, (n.midi-69)/12);
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.2, t0 + 0.01);
+      gain.gain.setValueAtTime(0.2, t1 - 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t1);
+      osc.connect(gain).connect(audio.destination);
+      osc.start(t0); osc.stop(t1 + 0.02);
+    }
+  }
+  document.getElementById('play').addEventListener('click', play);
+
+  // MIDI export (SMF Format 0)
+  function exportMIDI(){
+    if (!notes.length){ downloadBytes(new Uint8Array([]), 'empty.mid'); return; }
+    const bpm = parseInt(document.getElementById('bpm').value,10);
+    const microPerQuarter = Math.round(60000000 / bpm);
+
+    // sort notes by start
+    const seq = [...notes].sort((a,b)=> a.startBeat - b.startBeat || a.midi - b.midi);
+
+    // Build track events (delta-time VLQ)
+    const events = [];
+    function pushBytes(...arr){ for (const x of arr) events.push(x); }
+    function vlq(value){
+      // Robust VLQ writer (MSB-first). Always returns at least one byte.
+      const bytes = [];
+      let val = Math.max(0, (value|0) >>> 0); // coerce to unsigned int, clamp negatives to 0
+      const stack = [];
+      do {
+        stack.push(val & 0x7F);
+        val >>>= 7;
+      } while (val > 0);
+      while (stack.length){
+        const b = stack.pop();
+        bytes.push(stack.length ? (b | 0x80) : b);
+      }
+      return bytes;
+    }
+
+    // Meta: tempo
+    pushBytes(...vlq(0), 0xFF, 0x51, 0x03, (microPerQuarter>>16)&255, (microPerQuarter>>8)&255, microPerQuarter&255);
+
+    // Track time cursor in ticks
+    let cursor = 0;
+    function beatToTicks(b){ return Math.round(b * TPQ); }
+
+    // For each note, emit NoteOn and NoteOff
+    for (const n of seq){
+      const onTick = beatToTicks(n.startBeat);
+      const offTick = beatToTicks(n.startBeat + n.durBeats);
+      const channel = 0;
+      const velocity = 96;
+      const midiVal = Math.max(0, Math.min(127, (n.midi + (n.accidental||0))|0));
+      // Ensure non-decreasing deltas
+      const dOn = Math.max(0, onTick - cursor);
+      pushBytes(...vlq(dOn), 0x90 | channel, midiVal, velocity);
+      cursor = onTick;
+      const dOff = Math.max(0, offTick - cursor);
+      pushBytes(...vlq(dOff), 0x80 | channel, midiVal, 0x40);
+      cursor = offTick;
+    }
+
+    // End of track
+    pushBytes(...vlq(0), 0xFF, 0x2F, 0x00);
+
+    // Wrap in MTrk chunk
+    const trackData = new Uint8Array(events);
+    const trackLen = trackData.length;
+
+    // Build header (MThd)
+    function u32(n){ return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255]; }
+    function u16(n){ return [(n>>>8)&255,n&255]; }
+
+    const header = [
+      0x4d,0x54,0x68,0x64, // MThd
+      ...u32(6),           // header length
+      ...u16(0),           // format 0
+      ...u16(1),           // ntrks = 1
+      ...u16(TPQ),         // division
+    ];
+
+    const trackHeader = [
+      0x4d,0x54,0x72,0x6b, // MTrk
+      ...u32(trackLen),
+    ];
+
+    const full = new Uint8Array(header.length + trackHeader.length + trackLen);
+    full.set(header, 0);
+    full.set(trackHeader, header.length);
+    full.set(trackData, header.length + trackHeader.length);
+
+    downloadBytes(full, 'score.mid');
+  }
+
+  function downloadBytes(bytes, filename){
+    const blob = new Blob([bytes], {type: 'audio/midi'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+  }
+
+  document.getElementById('download').addEventListener('click', exportMIDI);
+
+  function clientPoint(evt){
+    const rect = svg.getBoundingClientRect();
+    const x = (evt.clientX - rect.left) * (W / rect.width);
+    const y = (evt.clientY - rect.top) * (H / rect.height);
+    return {x,y};
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
