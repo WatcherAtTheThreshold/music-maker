@@ -1,0 +1,167 @@
+/* ====================================================
+   SHEET MUSIC TO MIDI - MAIN STYLESHEET
+   Minimal Staff Editor Styling
+   ==================================================== */
+
+/* === CSS VARIABLES === */
+:root {
+  --bg: #0b0f14;
+  --panel: #121821;
+  --ink: #e8f0ff;
+  --muted: #92a2bd;
+  --accent: #64b5f6;
+  --accent-2: #a5d6a7;
+}
+
+/* === BASIC RESET AND BODY STYLES === */
+* { 
+  box-sizing: border-box; 
+}
+
+html, body { 
+  height: 100%; 
+}
+
+body {
+  margin: 0; 
+  font: 14px/1.35 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
+  color: var(--ink); 
+  background: radial-gradient(1200px 800px at 20% -10%, #1a2533 0%, var(--bg) 60%);
+}
+
+/* === LAYOUT CONTAINER === */
+.wrap { 
+  max-width: 1100px; 
+  margin: 24px auto; 
+  padding: 0 16px; 
+}
+
+/* === HEADER STYLES === */
+header { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  flex-wrap: wrap; 
+  margin-bottom: 16px; 
+}
+
+header h1 { 
+  font-size: 18px; 
+  margin: 0 12px 0 0; 
+  letter-spacing: .3px; 
+}
+
+/* === PANEL BASE STYLING === */
+.panel { 
+  background: rgba(18,24,33,.85); 
+  border: 1px solid #1e2a3a; 
+  border-radius: 14px; 
+  box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03); 
+}
+
+/* === CONTROLS SECTION === */
+.controls { 
+  padding: 12px; 
+  display: grid; 
+  grid-template-columns: repeat(12, minmax(0,1fr)); 
+  gap: 8px; 
+  align-items: center; 
+}
+
+.controls label { 
+  font-size: 12px; 
+  color: var(--muted); 
+}
+
+.controls .cell { 
+  display: grid; 
+  gap: 6px; 
+}
+
+.controls .cell > *:not(label) { 
+  height: 34px; 
+  border: 1px solid #273246; 
+  border-radius: 10px; 
+  padding: 6px 10px; 
+  background: #0e141c; 
+  color: var(--ink); 
+}
+
+/* === BUTTON STYLES === */
+.controls button {
+  cursor: pointer; 
+  border-color: #2f3c52; 
+  background: linear-gradient(180deg,#162131,#0f1723); 
+  transition: transform .06s ease, outline-color .2s; 
+  outline: 0;
+}
+
+.controls button:hover { 
+  transform: translateY(-1px); 
+}
+
+.controls button.primary { 
+  background: linear-gradient(180deg, #1a365d, #14253a); 
+  border-color: #22456f; 
+}
+
+.controls button.green { 
+  background: linear-gradient(180deg, #1c3c2a, #13281e); 
+  border-color: #265c3f; 
+}
+
+/* === SEPARATOR === */
+.controls .sep { 
+  height: 1px; 
+  grid-column: 1/-1; 
+  background: #1f2a3a; 
+  margin: 4px 0; 
+}
+
+/* === STAFF AREA === */
+.staff-wrap { 
+  padding: 14px; 
+}
+
+#staff { 
+  width: 100%; 
+  height: 420px; 
+  display: block; 
+}
+
+/* === LEGEND AND FOOTER === */
+.legend { 
+  padding: 10px 14px 16px; 
+  color: var(--muted); 
+  font-size: 12px; 
+}
+
+.legend b { 
+  color: var(--ink); 
+}
+
+.footer { 
+  color: var(--muted); 
+  font-size: 12px; 
+  text-align: center; 
+  padding: 14px; 
+}
+
+/* === BADGE COMPONENT === */
+.badge { 
+  display: inline-flex; 
+  align-items: center; 
+  gap: 8px; 
+  padding: 8px 12px; 
+  border-radius: 999px; 
+  border: 1px solid #243148; 
+  background: #0e1622; 
+  color: var(--muted);
+}
+
+.badge .dot { 
+  width: 10px; 
+  height: 10px; 
+  border-radius: 50%; 
+  background: var(--accent);
+}
