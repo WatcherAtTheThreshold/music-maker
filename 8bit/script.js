@@ -958,15 +958,23 @@ function loadDefaultChiptunePattern() {
   
   // Simple 8-bit melody pattern
   const scale = scales[currentKey];
+  
+  // Bass pattern
   pattern.bass[0] = { note: scale[0], velocity: 90 };
   pattern.bass[4] = { note: scale[2], velocity: 80 };
   pattern.bass[8] = { note: scale[4], velocity: 90 };
   pattern.bass[12] = { note: scale[2], velocity: 80 };
   
-  // Add some melody notes for arpeggiator
+  // Add some melody notes for arpeggiator (lead)
   pattern.lead[1] = { note: scale[0], velocity: 70 };
   pattern.lead[3] = { note: scale[2], velocity: 70 };
   pattern.lead[5] = { note: scale[4], velocity: 70 };
+  
+  // Add harmony pattern (pad) - FIXED: was missing before
+  pattern.pad[0] = { note: scale[2], velocity: 60 };
+  pattern.pad[8] = { note: scale[4], velocity: 60 };
+  pattern.pad[16] = { note: scale[1], velocity: 55 };
+  pattern.pad[24] = { note: scale[6], velocity: 55 };
 }
 
 /* === EVENT LISTENERS === */
