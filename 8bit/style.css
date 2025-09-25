@@ -334,9 +334,11 @@ h1 {
   padding-bottom: 0.5rem;
 }
 
-/* Step Sequencer */
+/* Step Sequencer - Updated for 32-step support */
 .sequencer {
   margin-bottom: 1rem;
+  overflow-x: auto; /* Allow horizontal scrolling */
+  padding-bottom: 0.5rem;
 }
 
 .sequencer-row {
@@ -344,6 +346,7 @@ h1 {
   align-items: center;
   margin-bottom: 1rem;
   gap: 0.5rem;
+  min-width: fit-content; /* Prevent squishing */
 }
 
 .track-label {
@@ -352,17 +355,19 @@ h1 {
   color: rgba(255, 255, 255, 0.8);
   text-align: right;
   font-size: 0.9rem;
+  flex-shrink: 0; /* Don't let labels shrink */
 }
 
 .steps {
   display: flex;
-  gap: 4px;
+  gap: 3px; /* Slightly smaller gap for more steps */
   flex: 1;
+  min-width: fit-content; /* Allow natural width */
 }
 
 .step {
-  width: 40px;
-  height: 40px;
+  width: 36px; /* Slightly smaller for 32 steps */
+  height: 36px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
@@ -373,6 +378,7 @@ h1 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0; /* Prevent steps from shrinking */
 }
 
 .step:hover {
@@ -402,16 +408,20 @@ h1 {
 .step.beat-5 { border-color: rgba(150, 220, 255, 0.5); }
 .step.beat-9 { border-color: rgba(100, 200, 255, 0.6); }
 .step.beat-13 { border-color: rgba(150, 220, 255, 0.5); }
+.step.beat-17 { border-color: rgba(100, 200, 255, 0.6); }
+.step.beat-21 { border-color: rgba(150, 220, 255, 0.5); }
+.step.beat-25 { border-color: rgba(100, 200, 255, 0.6); }
+.step.beat-29 { border-color: rgba(150, 220, 255, 0.5); }
 
 /* Melodic Steps */
 .step.melodic {
-  height: 60px;
+  height: 54px; /* Slightly smaller for 32 steps */
   flex-direction: column;
   padding: 2px;
 }
 
 .step.melodic .note-display {
-  font-size: 0.7rem;
+  font-size: 0.65rem; /* Slightly smaller font */
   color: rgba(255, 255, 255, 0.7);
   text-align: center;
   line-height: 1;
@@ -421,6 +431,69 @@ h1 {
   background: rgba(255, 215, 100, 0.7);
   border-color: rgba(255, 215, 100, 1);
   box-shadow: 0 0 12px rgba(255, 215, 100, 0.6);
+}
+
+/* Velocity indicator */
+.velocity-bar {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.velocity-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(64, 128, 255, 0.6), rgba(100, 200, 255, 0.8), rgba(255, 215, 100, 1));
+  border-radius: 2px;
+  width: var(--velocity, 70%);
+  transition: width 0.2s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .step { 
+    width: 28px; 
+    height: 28px; 
+  }
+  
+  .step.melodic { 
+    height: 42px; 
+  }
+  
+  .track-label { 
+    min-width: 60px; 
+    font-size: 0.8rem; 
+  }
+  
+  .steps {
+    gap: 2px;
+  }
+  
+  .step.melodic .note-display {
+    font-size: 0.6rem;
+  }
+}
+
+/* Scrollbar styling for sequencer */
+.sequencer::-webkit-scrollbar {
+  height: 8px;
+}
+
+.sequencer::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.sequencer::-webkit-scrollbar-thumb {
+  background: rgba(64, 128, 255, 0.6);
+  border-radius: 4px;
+}
+
+.sequencer::-webkit-scrollbar-thumb:hover {
+  background: rgba(64, 128, 255, 0.8);
 }
 
 /* Velocity indicator */
