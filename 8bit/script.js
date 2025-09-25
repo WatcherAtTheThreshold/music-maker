@@ -1171,7 +1171,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pattern = patterns[currentPattern];
     const scale = scales[currentKey];
     
-    // Randomize drums with 8-bit style probability
+    // Randomize drums with 8-bit style probability - ALL DRUM TRACKS
     pattern.kick = Array(32).fill(0).map((_, i) => 
       (i % 4 === 0) ? (Math.random() > 0.2 ? 80 + Math.random() * 40 : 0) : 
       (Math.random() > 0.85 ? 60 + Math.random() * 30 : 0)
@@ -1185,6 +1185,24 @@ document.addEventListener('DOMContentLoaded', () => {
     pattern.hihat = Array(32).fill(0).map((_, i) => 
       (i % 2 === 1) ? (Math.random() > 0.3 ? 50 + Math.random() * 30 : 0) : 
       (Math.random() > 0.7 ? 40 + Math.random() * 30 : 0)
+    );
+    
+    // Add openhat randomization (less frequent, clashes with hihat)
+    pattern.openhat = Array(32).fill(0).map((_, i) => 
+      (i % 8 === 7) ? (Math.random() > 0.4 ? 60 + Math.random() * 30 : 0) : 
+      (Math.random() > 0.9 ? 50 + Math.random() * 20 : 0)
+    );
+    
+    // Add clap randomization (accent beats)
+    pattern.clap = Array(32).fill(0).map((_, i) => 
+      (i % 16 === 12) ? (Math.random() > 0.3 ? 70 + Math.random() * 35 : 0) : 
+      (Math.random() > 0.92 ? 60 + Math.random() * 25 : 0)
+    );
+    
+    // Add crash randomization (very sparse, dramatic moments)
+    pattern.crash = Array(32).fill(0).map((_, i) => 
+      (i === 0 || i === 16) ? (Math.random() > 0.7 ? 90 + Math.random() * 30 : 0) : 
+      (Math.random() > 0.95 ? 80 + Math.random() * 25 : 0)
     );
     
     // Randomize melody with pentatonic-style patterns (more 8-bit)
