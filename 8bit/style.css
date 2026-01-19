@@ -550,11 +550,11 @@ h1 {
 }
 
 .step {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   background: var(--terminal-panel-inset);
-  border: 1px solid var(--terminal-border);
-  border-radius: 6px;
+  border: 2px solid var(--terminal-border);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
   position: relative;
@@ -600,14 +600,14 @@ h1 {
 
 /* Melodic Steps */
 .step.melodic {
-  height: 54px;
+  height: 72px;
   flex-direction: column;
-  padding: 2px;
+  padding: 4px;
 }
 
 .step.melodic .note-display {
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.85rem;
   color: var(--terminal-text-dim);
   text-align: center;
   line-height: 1;
@@ -963,18 +963,31 @@ h1 {
   .musical-controls { grid-template-columns: 1fr; }
   .effects-grid { grid-template-columns: 1fr; }
   .volume-controls { grid-template-columns: 1fr; }
-  .step { width: 28px; height: 28px; }
-  .step.melodic { height: 42px; }
+  .step { width: 36px; height: 36px; }
+  .step.melodic { height: 54px; }
   .track-label { min-width: 60px; font-size: 0.75rem; }
   .pattern-controls { justify-content: center; }
   .track-controls { margin-right: 4px; }
   .mute-btn, .solo-btn { width: 20px; height: 20px; font-size: 0.6rem; }
   .steps { gap: 2px; }
-  .step.melodic .note-display { font-size: 0.6rem; }
+  .step.melodic .note-display { font-size: 0.7rem; }
 }
 
 @media (min-width: 2000px) {
   .controls-grid {
     grid-template-columns: repeat(6, 1fr);
+  }
+
+  .step {
+    width: 56px;
+    height: 56px;
+  }
+
+  .step.melodic {
+    height: 84px;
+  }
+
+  .step.melodic .note-display {
+    font-size: 1rem;
   }
 }
