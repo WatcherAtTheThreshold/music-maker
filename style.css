@@ -335,11 +335,16 @@ h1 {
 
 /* ===== CONTROL PANEL ===== */
 .controls-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
+  display: flex;
+  flex-wrap: wrap;
   gap: 2rem;
   margin-bottom: 2rem;
   justify-content: center;
+}
+
+.controls-grid .control-group {
+  flex: 0 1 300px;
+  max-width: 320px;
 }
 
 .control-group {
