@@ -333,9 +333,10 @@ h1 {
 /* ===== CONTROL PANEL ===== */
 .controls-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
   gap: 2rem;
   margin-bottom: 2rem;
+  justify-content: center;
 }
 
 .control-group {
