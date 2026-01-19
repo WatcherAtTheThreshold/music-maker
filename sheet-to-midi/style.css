@@ -289,6 +289,41 @@ header h1 {
   text-shadow: 0 0 10px var(--terminal-amber-glow);
 }
 
+.controls button.playing {
+  border-color: var(--terminal-red);
+  color: var(--terminal-red);
+  animation: playingPulse 1s ease-in-out infinite;
+}
+
+.controls button.playing:hover {
+  box-shadow: var(--raised-shadow), 0 0 15px var(--terminal-red-glow);
+}
+
+@keyframes playingPulse {
+  0%, 100% { box-shadow: var(--raised-shadow); }
+  50% { box-shadow: var(--raised-shadow), 0 0 15px var(--terminal-red-glow); }
+}
+
+#loop {
+  border-color: var(--terminal-text-muted);
+  color: var(--terminal-text-muted);
+}
+
+#loop:hover {
+  border-color: var(--terminal-cyan);
+  color: var(--terminal-cyan);
+}
+
+#loop.active {
+  border-color: var(--terminal-cyan);
+  color: var(--terminal-cyan);
+  box-shadow: var(--raised-shadow), 0 0 10px var(--terminal-cyan-glow);
+}
+
+#loop.active::before {
+  content: '↻ ';
+}
+
 /* ===== SEPARATOR ===== */
 .controls .sep {
   height: 1px;
