@@ -40,6 +40,7 @@ let patternLength = 32;
 let currentKey = 'C';
 let swingAmount = 0;
 let sidechainAmount = 50;
+let isEditingVelocity = false;
 
 // Arpeggiator settings
 let arpPattern = 'off';
@@ -88,6 +89,172 @@ const patterns = [
     bass: Array(32).fill().map(() => ({ note: null, velocity: 70 }))
   }
 ];
+
+// MIDI note mapping for drums
+const DRUM_MIDI_MAP = {
+  kick: 36,    // C1
+  snare: 38,   // D1
+  hihat: 42,   // F#1 (Closed Hi-Hat)
+  openhat: 46, // A#1 (Open Hi-Hat)
+  clap: 39,    // D#1 (Hand Clap)
+  crash: 49    // C#2 (Crash Cymbal)
+};
+
+// Note to MIDI conversion
+function noteToMidi(note, octave) {
+  const noteMap = { 'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11 };
+  return (octave + 1) * 12 + (noteMap[note] || 0);
+}
+
+// Export to MIDI
+function exportToMIDI() {
+  const pattern = patterns[currentPattern];
+  const bpm = Tone.Transport.bpm.value;
+  const TPQ = 480; // Ticks per quarter note
+  const stepTicks = TPQ / 4; // 16th note = 1/4 of quarter note
+
+  // Collect all events
+  const allEvents = [];
+
+  // Process drum tracks
+  drumTracks.forEach(track => {
+    const midiNote = DRUM_MIDI_MAP[track];
+    pattern[track].slice(0, patternLength).forEach((velocity, step) => {
+      if (velocity > 0) {
+        const tick = step * stepTicks;
+        allEvents.push({
+          tick,
+          type: 'noteOn',
+          channel: 9, // Drum channel
+          note: midiNote,
+          velocity: Math.round(velocity)
+        });
+        allEvents.push({
+          tick: tick + stepTicks - 1,
+          type: 'noteOff',
+          channel: 9,
+          note: midiNote,
+          velocity: 0
+        });
+      }
+    });
+  });
+
+  // Process melody tracks
+  melodyTracks.forEach((track, trackIndex) => {
+    const channel = trackIndex; // Use different channels for each melodic track
+    pattern[track].slice(0, patternLength).forEach((stepData, step) => {
+      if (stepData && stepData.note) {
+        const octave = track === 'bass' ? 2 : track === 'lead' ? 4 : 3;
+        const midiNote = noteToMidi(stepData.note, octave);
+        const tick = step * stepTicks;
+
+        allEvents.push({
+          tick,
+          type: 'noteOn',
+          channel,
+          note: midiNote,
+          velocity: Math.round(stepData.velocity)
+        });
+        allEvents.push({
+          tick: tick + stepTicks - 1,
+          type: 'noteOff',
+          channel,
+          note: midiNote,
+          velocity: 0
+        });
+      }
+    });
+  });
+
+  // Sort events by tick
+  allEvents.sort((a, b) => a.tick - b.tick);
+
+  // Build MIDI file
+  const midiData = buildMIDIFile(allEvents, bpm, TPQ);
+
+  // Download
+  const blob = new Blob([midiData], { type: 'audio/midi' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'edm-pattern.mid';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function buildMIDIFile(events, bpm, TPQ) {
+  const bytes = [];
+
+  // Helper functions
+  function writeBytes(...data) {
+    bytes.push(...data);
+  }
+
+  function writeVarLen(value) {
+    const result = [];
+    result.push(value & 0x7F);
+    while ((value >>= 7) > 0) {
+      result.unshift((value & 0x7F) | 0x80);
+    }
+    return result;
+  }
+
+  function write32(val) {
+    writeBytes((val >> 24) & 0xFF, (val >> 16) & 0xFF, (val >> 8) & 0xFF, val & 0xFF);
+  }
+
+  function write16(val) {
+    writeBytes((val >> 8) & 0xFF, val & 0xFF);
+  }
+
+  // Header chunk
+  writeBytes(0x4D, 0x54, 0x68, 0x64); // "MThd"
+  write32(6);    // Header length
+  write16(0);    // Format 0
+  write16(1);    // 1 track
+  write16(TPQ);  // Ticks per quarter note
+
+  // Track chunk
+  const trackBytes = [];
+
+  // Tempo meta event
+  const microsecondsPerBeat = Math.round(60000000 / bpm);
+  trackBytes.push(0x00); // Delta time
+  trackBytes.push(0xFF, 0x51, 0x03); // Tempo meta event
+  trackBytes.push((microsecondsPerBeat >> 16) & 0xFF);
+  trackBytes.push((microsecondsPerBeat >> 8) & 0xFF);
+  trackBytes.push(microsecondsPerBeat & 0xFF);
+
+  // Add note events
+  let lastTick = 0;
+  events.forEach(event => {
+    const delta = event.tick - lastTick;
+    trackBytes.push(...writeVarLen(delta));
+
+    if (event.type === 'noteOn') {
+      trackBytes.push(0x90 | event.channel);
+      trackBytes.push(event.note);
+      trackBytes.push(event.velocity);
+    } else {
+      trackBytes.push(0x80 | event.channel);
+      trackBytes.push(event.note);
+      trackBytes.push(0);
+    }
+
+    lastTick = event.tick;
+  });
+
+  // End of track
+  trackBytes.push(0x00, 0xFF, 0x2F, 0x00);
+
+  // Write track chunk
+  writeBytes(0x4D, 0x54, 0x72, 0x6B); // "MTrk"
+  write32(trackBytes.length);
+  bytes.push(...trackBytes);
+
+  return new Uint8Array(bytes);
+}
 
 // Audio components
 let synths = {};
@@ -623,18 +790,22 @@ function initializeSequencers() {
 // Load default pattern
 function loadDefaultPattern() {
   const pattern = patterns[0];
-  
+
   // Default drum pattern
   pattern.kick = [70,0,0,0, 70,0,0,0, 70,0,0,0, 70,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
   pattern.snare = [0,0,0,0, 70,0,0,0, 0,0,0,0, 70,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
   pattern.hihat = [50,0,50,0, 50,0,50,0, 50,0,50,0, 50,0,50,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
-  
+
   // Default melody pattern
   const scale = scales[currentKey];
   pattern.bass[0] = { note: scale[0], velocity: 80 };
   pattern.bass[4] = { note: scale[2], velocity: 70 };
   pattern.bass[8] = { note: scale[4], velocity: 80 };
   pattern.bass[12] = { note: scale[2], velocity: 70 };
+
+  // Default pad pattern (chords on beats)
+  pattern.pad[0] = { note: scale[0], velocity: 60 };
+  pattern.pad[8] = { note: scale[4], velocity: 55 };
 }
 
 // Event Listeners
@@ -931,6 +1102,14 @@ document.addEventListener('keyup', (e) => {
     document.body.style.cursor = 'default';
   }
 });
+
+// MIDI Export button
+const exportButton = document.getElementById('exportMIDI');
+if (exportButton) {
+  exportButton.addEventListener('click', () => {
+    exportToMIDI();
+  });
+}
 
 // Initialize everything
 initializeSequencers();
