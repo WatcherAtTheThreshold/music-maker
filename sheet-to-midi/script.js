@@ -13,14 +13,14 @@
 
   /* === SVG LAYOUT CONSTANTS === */
   const svg = document.getElementById('staff');
-  const W = 1200, H = 420; // viewBox units
-  const PADDING = { l: 40, r: 30, t: 30, b: 30 };
+  const W = 2400, H = 930; // viewBox units (enlarged for better usability)
+  const PADDING = { l: 60, r: 50, t: 60, b: 60 };
   const innerW = W - PADDING.l - PADDING.r;
   const innerH = H - PADDING.t - PADDING.b;
 
   /* === STAFF POSITIONING === */
-  const staffTop = PADDING.t + 80;
-  const staffGap = 12; // distance between staff lines
+  const staffTop = PADDING.t + 160;
+  const staffGap = 24; // distance between staff lines (doubled for larger staff)
   const staffLines = 5;
   const staffBottom = staffTop + (staffLines - 1) * staffGap;
   const staffHeight = staffBottom - staffTop;
@@ -180,20 +180,20 @@
   }
 
   function renderBackgroundPanel(g) {
-    g.push(`<rect x="${PADDING.l-18}" y="${staffTop-40}" width="${innerW+36}" height="${staffHeight+80}" rx="14" ry="14" fill="#0d1320" stroke="#1f2a3a"/>`);
+    g.push(`<rect x="${PADDING.l-30}" y="${staffTop-80}" width="${innerW+60}" height="${staffHeight+160}" rx="20" ry="20" fill="#0d1320" stroke="#1f2a3a"/>`);
   }
 
   function renderMeasureGrid(g) {
     for (let i = 0; i < MEASURES; i++) {
       const x0 = xForBeat(i*4), x1 = xForBeat((i+1)*4);
-      g.push(`<rect x="${x0}" y="${staffTop-18}" width="${x1-x0}" height="${staffHeight+36}" fill="${i%2? '#0b1220':'#0a101a'}" opacity=".45"/>`);
+      g.push(`<rect x="${x0}" y="${staffTop-36}" width="${x1-x0}" height="${staffHeight+72}" fill="${i%2? '#0b1220':'#0a101a'}" opacity=".45"/>`);
     }
   }
 
   function renderStaffLines(g) {
     for (let i = 0; i < staffLines; i++) {
       const y = staffTop + i * staffGap;
-      g.push(`<line x1="${PADDING.l}" y1="${y}" x2="${W-PADDING.r}" y2="${y}" stroke="#cfe0ff" stroke-opacity=".7" stroke-width="1" />`);
+      g.push(`<line x1="${PADDING.l}" y1="${y}" x2="${W-PADDING.r}" y2="${y}" stroke="#cfe0ff" stroke-opacity=".7" stroke-width="2" />`);
     }
   }
 
@@ -201,12 +201,12 @@
     for (let b = 0; b <= TOTAL_BEATS; b++) {
       const x = xForBeat(b);
       const isBar = (b % TIME_SIG_NUM) === 0;
-      g.push(`<line x1="${x}" y1="${staffTop-18}" x2="${x}" y2="${staffBottom+18}" stroke="${isBar? '#6aa2ff':'#35507a'}" stroke-opacity="${isBar? .8:.35}" stroke-width="${isBar? 1.5:1}" />`);
+      g.push(`<line x1="${x}" y1="${staffTop-36}" x2="${x}" y2="${staffBottom+36}" stroke="${isBar? '#6aa2ff':'#35507a'}" stroke-opacity="${isBar? .8:.35}" stroke-width="${isBar? 2.5:1.5}" />`);
     }
   }
 
   function renderTrebleClef(g) {
-    g.push(`<text x="${PADDING.l-26}" y="${staffTop + staffGap*3.2}" fill="#cfe0ff" font-size="48" font-family="'Segoe UI Symbol', 'Noto Emoji', sans-serif">𝄞</text>`);
+    g.push(`<text x="${PADDING.l-48}" y="${staffTop + staffGap*3.2}" fill="#cfe0ff" font-size="80" font-family="'Segoe UI Symbol', 'Noto Emoji', sans-serif">𝄞</text>`);
   }
 
   function renderAllNotes(g) {
@@ -216,9 +216,9 @@
   }
 
   function renderSingleNote(g, n) {
-    const x = xForBeat(n.startBeat) + 10; // slight inset
+    const x = xForBeat(n.startBeat) + 20; // slight inset
     const y = midiToStaffY(n.midi);
-    const w = 14, h = 10;
+    const w = 22, h = 16; // larger note heads for bigger staff
     const sel = n.id === selectedId;
 
     // Render ledger lines if needed
@@ -240,7 +240,7 @@
   function renderLedgerLines(g, midi, x) {
     const ledgerYs = getLedgerYPositions(midi);
     for (const ly of ledgerYs) {
-      g.push(`<line x1="${x-8}" y1="${ly}" x2="${x+8}" y2="${ly}" stroke="#cfe0ff" stroke-width="1.2" />`);
+      g.push(`<line x1="${x-14}" y1="${ly}" x2="${x+14}" y2="${ly}" stroke="#cfe0ff" stroke-width="2" />`);
     }
   }
 
@@ -267,9 +267,9 @@
 
   function renderAccidental(g, n, x, y) {
     if (n.accidental === 1) {
-      g.push(`<text x="${x-16}" y="${y+4}" fill="#cfe0ff" font-size="16">#</text>`);
+      g.push(`<text x="${x-28}" y="${y+6}" fill="#cfe0ff" font-size="24">#</text>`);
     } else if (n.accidental === -1) {
-      g.push(`<text x="${x-16}" y="${y+4}" fill="#cfe0ff" font-size="16">♭</text>`);
+      g.push(`<text x="${x-28}" y="${y+6}" fill="#cfe0ff" font-size="24">♭</text>`);
     }
   }
 
@@ -281,15 +281,15 @@
   function renderNoteStem(g, n, x, y, w) {
     const up = n.midi < 71; // B4 = 71, stems up for notes below
     if (up) {
-      g.push(`<line x1="${x+w-2}" y1="${y}" x2="${x+w-2}" y2="${y-28}" stroke="#cfe0ff" stroke-width="1.5" />`);
+      g.push(`<line x1="${x+w-3}" y1="${y}" x2="${x+w-3}" y2="${y-50}" stroke="#cfe0ff" stroke-width="2.5" />`);
     } else {
-      g.push(`<line x1="${x-w+2}" y1="${y}" x2="${x-w+2}" y2="${y+28}" stroke="#cfe0ff" stroke-width="1.5" />`);
+      g.push(`<line x1="${x-w+3}" y1="${y}" x2="${x-w+3}" y2="${y+50}" stroke="#cfe0ff" stroke-width="2.5" />`);
     }
   }
 
   function renderDurationIndicator(g, n, x, y) {
     const durTxt = durationText(n.durBeats);
-    g.push(`<text x="${x-6}" y="${y+24}" fill="#7fa2c4" font-size="10">${durTxt}</text>`);
+    g.push(`<text x="${x-10}" y="${y+38}" fill="#7fa2c4" font-size="16">${durTxt}</text>`);
   }
 
   function durationText(d) {
@@ -555,20 +555,100 @@
     render();
   }
 
+  /* === RANDOM MELODY GENERATION === */
+
+  function generateRandomMelody() {
+    pushHistory();
+    notes = [];
+    selectedId = null;
+
+    // Musical scales for more pleasing melodies
+    const cMajor = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81]; // C4 to A5 in C major
+    const cPentatonic = [60, 62, 64, 67, 69, 72, 74, 76, 79, 81]; // C major pentatonic
+    const scales = [cMajor, cPentatonic];
+    const scale = scales[Math.floor(Math.random() * scales.length)];
+
+    // Random rhythm patterns
+    const rhythmPatterns = [
+      [1, 1, 1, 1],           // all quarter notes
+      [2, 1, 1],              // half + two quarters
+      [1, 1, 2],              // two quarters + half
+      [0.5, 0.5, 1, 0.5, 0.5, 1], // eighth notes mixed
+      [1, 0.5, 0.5, 1, 1],    // mixed
+      [2, 2],                 // two halves
+      [1, 1, 0.5, 0.5, 1],    // mixed pattern
+    ];
+
+    let currentBeat = 0;
+    const totalBeats = TOTAL_BEATS;
+
+    // Generate notes across the measures
+    while (currentBeat < totalBeats) {
+      // Pick a random rhythm pattern
+      const pattern = rhythmPatterns[Math.floor(Math.random() * rhythmPatterns.length)];
+
+      for (const dur of pattern) {
+        if (currentBeat >= totalBeats) break;
+
+        // 15% chance to rest (skip)
+        if (Math.random() < 0.15) {
+          currentBeat += dur;
+          continue;
+        }
+
+        // Pick a random note from the scale with some melodic contour
+        let noteIndex;
+        if (notes.length > 0) {
+          // Tend toward stepwise motion
+          const lastNote = notes[notes.length - 1];
+          const lastIndex = scale.indexOf(lastNote.midi);
+          if (lastIndex !== -1 && Math.random() < 0.7) {
+            // Step up or down
+            const step = Math.random() < 0.5 ? -1 : 1;
+            noteIndex = Math.max(0, Math.min(scale.length - 1, lastIndex + step * (Math.floor(Math.random() * 2) + 1)));
+          } else {
+            noteIndex = Math.floor(Math.random() * scale.length);
+          }
+        } else {
+          // Start in the middle of the range
+          noteIndex = Math.floor(scale.length / 2) + Math.floor(Math.random() * 3) - 1;
+        }
+
+        const midi = scale[noteIndex];
+        const actualDur = Math.min(dur, totalBeats - currentBeat);
+
+        if (actualDur > 0) {
+          notes.push({
+            id: nextId++,
+            midi,
+            startBeat: currentBeat,
+            durBeats: actualDur,
+            accidental: 0
+          });
+        }
+
+        currentBeat += dur;
+      }
+    }
+
+    render();
+  }
+
   /* === EVENT LISTENERS SETUP === */
-  
+
   function setupEventListeners() {
     // Staff interaction
     svg.addEventListener('mousedown', handleStaffClick);
-    
+
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyDown);
-    
+
     // Control buttons
     document.getElementById('undo').addEventListener('click', undo);
     document.getElementById('clear').addEventListener('click', clearAllNotes);
     document.getElementById('play').addEventListener('click', playNotes);
     document.getElementById('download').addEventListener('click', exportMIDI);
+    document.getElementById('randomize').addEventListener('click', generateRandomMelody);
   }
 
   /* === INITIALIZATION === */
