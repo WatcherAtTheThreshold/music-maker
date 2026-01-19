@@ -149,22 +149,31 @@
 
     // SVG definitions and filters
     renderSVGDefinitions(g);
-    
+
     // Background panel
     renderBackgroundPanel(g);
-    
+
     // Measure grid
     renderMeasureGrid(g);
-    
+
+    // Pitch guides (subtle lines for note placement)
+    renderPitchGuides(g);
+
     // Staff lines
     renderStaffLines(g);
-    
+
     // Beat tick marks
     renderBeatTicks(g);
-    
+
+    // Measure numbers
+    renderBeatLabels(g);
+
+    // Note name labels on left
+    renderNoteLabels(g);
+
     // Treble clef
     renderTrebleClef(g);
-    
+
     // All notes
     renderAllNotes(g);
 
@@ -190,6 +199,24 @@
     }
   }
 
+  function renderPitchGuides(g) {
+    // Render subtle horizontal lines for spaces between staff lines (where notes go)
+    // This helps users see where they can place notes
+    const noteAreaTop = staffTop - staffGap * 3; // Above staff for ledger lines
+    const noteAreaBottom = staffBottom + staffGap * 3; // Below staff for ledger lines
+
+    // Draw subtle guides for each possible note position (every half staff gap)
+    for (let y = noteAreaTop; y <= noteAreaBottom; y += staffGap / 2) {
+      // Skip positions that are on staff lines (they're already visible)
+      const isOnStaffLine = (y >= staffTop && y <= staffBottom &&
+        Math.abs((y - staffTop) % staffGap) < 1);
+
+      if (!isOnStaffLine) {
+        g.push(`<line x1="${PADDING.l}" y1="${y}" x2="${W-PADDING.r}" y2="${y}" stroke="#2a3a4a" stroke-opacity=".25" stroke-width="1" stroke-dasharray="4,8" />`);
+      }
+    }
+  }
+
   function renderStaffLines(g) {
     for (let i = 0; i < staffLines; i++) {
       const y = staffTop + i * staffGap;
@@ -202,6 +229,46 @@
       const x = xForBeat(b);
       const isBar = (b % TIME_SIG_NUM) === 0;
       g.push(`<line x1="${x}" y1="${staffTop-36}" x2="${x}" y2="${staffBottom+36}" stroke="${isBar? '#6aa2ff':'#35507a'}" stroke-opacity="${isBar? .8:.35}" stroke-width="${isBar? 2.5:1.5}" />`);
+    }
+  }
+
+  function renderBeatLabels(g) {
+    // Add beat numbers below the staff for clarity
+    for (let b = 0; b < TOTAL_BEATS; b++) {
+      const x = xForBeat(b) + (xForBeat(b+1) - xForBeat(b)) / 2;
+      const measureNum = Math.floor(b / 4) + 1;
+      const beatInMeasure = (b % 4) + 1;
+
+      // Only show measure and beat 1 markers
+      if (b % 4 === 0) {
+        g.push(`<text x="${x}" y="${staffBottom + 70}" fill="#6aa2ff" font-size="18" text-anchor="middle" font-family="monospace">${measureNum}</text>`);
+      }
+    }
+  }
+
+  function renderNoteLabels(g) {
+    // Add note name labels on the left side
+    const noteLabels = [
+      { midi: 81, label: 'A5' },
+      { midi: 79, label: 'G5' },
+      { midi: 77, label: 'F5' },
+      { midi: 76, label: 'E5' },
+      { midi: 74, label: 'D5' },
+      { midi: 72, label: 'C5' },
+      { midi: 71, label: 'B4' },
+      { midi: 69, label: 'A4' },
+      { midi: 67, label: 'G4' },
+      { midi: 65, label: 'F4' },
+      { midi: 64, label: 'E4' },
+      { midi: 62, label: 'D4' },
+      { midi: 60, label: 'C4' }
+    ];
+
+    for (const nl of noteLabels) {
+      const y = midiToStaffY(nl.midi);
+      if (y >= staffTop - staffGap * 2 && y <= staffBottom + staffGap * 2) {
+        g.push(`<text x="${PADDING.l - 55}" y="${y + 5}" fill="#4a6a8a" font-size="14" text-anchor="end" font-family="monospace">${nl.label}</text>`);
+      }
     }
   }
 
@@ -383,19 +450,114 @@
   }
 
   /* === PLAYBACK FUNCTIONS === */
-  
-  let audio = null;
 
-  function playNotes() {
+  let audio = null;
+  let isPlaying = false;
+  let isLooping = false;
+  let activeOscillators = [];
+  let playbackTimeout = null;
+
+  function togglePlay() {
+    if (isPlaying) {
+      stopPlayback();
+    } else {
+      startPlayback();
+    }
+  }
+
+  function startPlayback() {
     if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
     if (!notes.length) return;
-    
+
+    // Resume audio context if suspended
+    if (audio.state === 'suspended') {
+      audio.resume();
+    }
+
+    isPlaying = true;
+    updatePlayButton();
+    playOnce();
+  }
+
+  function playOnce() {
+    if (!isPlaying) return;
+
     const bpm = parseInt(document.getElementById('bpm').value, 10);
     const secPerBeat = 60 / bpm;
-    const startT = audio.currentTime + 0.1;
-    
+    const startT = audio.currentTime + 0.05;
+    const totalDuration = TOTAL_BEATS * secPerBeat;
+
+    // Schedule all notes
     for (const n of notes) {
-      playNoteAudio(n, startT, secPerBeat);
+      const oscData = playNoteAudio(n, startT, secPerBeat);
+      activeOscillators.push(oscData);
+    }
+
+    // Schedule next loop or stop
+    if (isLooping) {
+      playbackTimeout = setTimeout(() => {
+        if (isPlaying && isLooping) {
+          playOnce();
+        }
+      }, totalDuration * 1000);
+    } else {
+      // Auto-stop after playback completes
+      playbackTimeout = setTimeout(() => {
+        if (isPlaying && !isLooping) {
+          stopPlayback();
+        }
+      }, totalDuration * 1000 + 100);
+    }
+  }
+
+  function stopPlayback() {
+    isPlaying = false;
+
+    // Clear scheduled timeout
+    if (playbackTimeout) {
+      clearTimeout(playbackTimeout);
+      playbackTimeout = null;
+    }
+
+    // Stop all active oscillators
+    const now = audio ? audio.currentTime : 0;
+    for (const oscData of activeOscillators) {
+      try {
+        oscData.gain.gain.cancelScheduledValues(now);
+        oscData.gain.gain.setValueAtTime(oscData.gain.gain.value, now);
+        oscData.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+        oscData.osc.stop(now + 0.06);
+      } catch (e) {
+        // Oscillator may have already stopped
+      }
+    }
+    activeOscillators = [];
+
+    updatePlayButton();
+  }
+
+  function toggleLoop() {
+    isLooping = !isLooping;
+    updateLoopButton();
+  }
+
+  function updatePlayButton() {
+    const btn = document.getElementById('play');
+    if (isPlaying) {
+      btn.textContent = 'Stop';
+      btn.classList.remove('green');
+      btn.classList.add('playing');
+    } else {
+      btn.textContent = 'Play';
+      btn.classList.add('green');
+      btn.classList.remove('playing');
+    }
+  }
+
+  function updateLoopButton() {
+    const btn = document.getElementById('loop');
+    if (btn) {
+      btn.classList.toggle('active', isLooping);
     }
   }
 
@@ -403,21 +565,23 @@
     const t0 = startTime + note.startBeat * secPerBeat;
     const t1 = t0 + note.durBeats * secPerBeat;
     const freq = 440 * Math.pow(2, (note.midi - 69) / 12);
-    
+
     const osc = audio.createOscillator();
     const gain = audio.createGain();
-    
+
     osc.frequency.value = freq;
     osc.type = 'sine';
-    
+
     gain.gain.setValueAtTime(0.0001, t0);
     gain.gain.exponentialRampToValueAtTime(0.2, t0 + 0.01);
     gain.gain.setValueAtTime(0.2, t1 - 0.03);
     gain.gain.exponentialRampToValueAtTime(0.0001, t1);
-    
+
     osc.connect(gain).connect(audio.destination);
-    osc.start(t0); 
+    osc.start(t0);
     osc.stop(t1 + 0.02);
+
+    return { osc, gain };
   }
 
   /* === MIDI EXPORT FUNCTIONS === */
@@ -646,9 +810,15 @@
     // Control buttons
     document.getElementById('undo').addEventListener('click', undo);
     document.getElementById('clear').addEventListener('click', clearAllNotes);
-    document.getElementById('play').addEventListener('click', playNotes);
+    document.getElementById('play').addEventListener('click', togglePlay);
     document.getElementById('download').addEventListener('click', exportMIDI);
     document.getElementById('randomize').addEventListener('click', generateRandomMelody);
+
+    // Loop button (if exists)
+    const loopBtn = document.getElementById('loop');
+    if (loopBtn) {
+      loopBtn.addEventListener('click', toggleLoop);
+    }
   }
 
   /* === INITIALIZATION === */
