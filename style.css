@@ -325,12 +325,38 @@ h1 {
   margin-bottom: 1.5rem;
   text-align: center;
   text-shadow: 0 0 15px var(--terminal-glow-dim);
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.section-title:hover {
+  color: var(--terminal-text);
 }
 
 .section-title::before {
-  content: '> ';
+  content: '▼ ';
   color: var(--terminal-text-muted);
   font-family: var(--font-mono);
+  font-size: 0.8em;
+  transition: transform 0.3s ease;
+  display: inline-block;
+}
+
+.section.collapsed .section-title::before {
+  content: '▶ ';
+}
+
+.section-content {
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+}
+
+.section.collapsed .section-content {
+  max-height: 0 !important;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
 }
 
 /* ===== CONTROL PANEL ===== */
