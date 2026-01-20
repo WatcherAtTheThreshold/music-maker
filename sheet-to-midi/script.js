@@ -20,17 +20,17 @@
 
   /* === SVG LAYOUT CONSTANTS === */
   const svg = document.getElementById('staff');
-  const W = 2400, H = 1600; // viewBox units (tall enough for 3 staves)
-  const PADDING = { l: 100, r: 50, t: 40, b: 40 };
+  const W = 2400, H = 1400; // viewBox units (optimized for 3 staves)
+  const PADDING = { l: 120, r: 60, t: 30, b: 30 };
   const innerW = W - PADDING.l - PADDING.r;
   const innerH = H - PADDING.t - PADDING.b;
 
   /* === STAFF POSITIONING === */
-  const staffGap = 20;      // distance between staff lines
+  const staffGap = 28;      // distance between staff lines (larger for bigger staves)
   const staffLines = 5;
-  const staffHeight = (staffLines - 1) * staffGap; // 80px per staff
-  const staffSpacing = 280; // vertical distance between staff tops
-  const firstStaffTop = PADDING.t + 80;
+  const staffHeight = (staffLines - 1) * staffGap; // 112px per staff
+  const staffSpacing = 420; // vertical distance between staff tops (more space)
+  const firstStaffTop = PADDING.t + 100;
 
   // Calculate staff top position
   function getStaffTop(staffIndex) {
@@ -239,12 +239,12 @@
     const staffBottom = getStaffBottom(staffIndex);
 
     // Background panel
-    g.push(`<rect x="${PADDING.l-40}" y="${staffTop-50}" width="${innerW+80}" height="${staffHeight+100}" rx="12" ry="12" fill="#0d1320" stroke="#1f2a3a"/>`);
+    g.push(`<rect x="${PADDING.l-50}" y="${staffTop-70}" width="${innerW+100}" height="${staffHeight+140}" rx="14" ry="14" fill="#0d1320" stroke="#1f2a3a"/>`);
 
     // Measure grid shading
     for (let i = 0; i < MEASURES; i++) {
       const x0 = xForBeat(i*4), x1 = xForBeat((i+1)*4);
-      g.push(`<rect x="${x0}" y="${staffTop-30}" width="${x1-x0}" height="${staffHeight+60}" fill="${i%2? '#0b1220':'#0a101a'}" opacity=".45"/>`);
+      g.push(`<rect x="${x0}" y="${staffTop-45}" width="${x1-x0}" height="${staffHeight+90}" fill="${i%2? '#0b1220':'#0a101a'}" opacity=".45"/>`);
     }
 
     // Pitch guides
@@ -260,7 +260,7 @@
     for (let b = 0; b <= TOTAL_BEATS; b++) {
       const x = xForBeat(b);
       const isBar = (b % TIME_SIG_NUM) === 0;
-      g.push(`<line x1="${x}" y1="${staffTop-30}" x2="${x}" y2="${staffBottom+30}" stroke="${isBar? '#6aa2ff':'#35507a'}" stroke-opacity="${isBar? .8:.35}" stroke-width="${isBar? 2.5:1.5}" />`);
+      g.push(`<line x1="${x}" y1="${staffTop-45}" x2="${x}" y2="${staffBottom+45}" stroke="${isBar? '#6aa2ff':'#35507a'}" stroke-opacity="${isBar? .8:.35}" stroke-width="${isBar? 3:1.5}" />`);
     }
 
     // Measure numbers (only on first staff)
@@ -268,17 +268,17 @@
       for (let b = 0; b < TOTAL_BEATS; b += 4) {
         const x = xForBeat(b) + (xForBeat(b+4) - xForBeat(b)) / 2;
         const measureNum = Math.floor(b / 4) + 1;
-        g.push(`<text x="${x}" y="${staffTop - 60}" fill="#6aa2ff" font-size="16" text-anchor="middle" font-family="monospace">${measureNum}</text>`);
+        g.push(`<text x="${x}" y="${staffTop - 80}" fill="#6aa2ff" font-size="20" text-anchor="middle" font-family="monospace">${measureNum}</text>`);
       }
     }
 
     // Staff label
     const labelColor = staff.color;
-    g.push(`<text x="${PADDING.l - 90}" y="${staffTop + staffHeight/2 - 15}" fill="${labelColor}" font-size="12" text-anchor="end" font-family="monospace">${staff.name}</text>`);
+    g.push(`<text x="${PADDING.l - 105}" y="${staffTop + staffHeight/2 - 20}" fill="${labelColor}" font-size="14" text-anchor="end" font-family="monospace">${staff.name}</text>`);
 
     // Active indicator
     if (staffIndex === activeStaff) {
-      g.push(`<circle cx="${PADDING.l - 90}" cy="${staffTop + staffHeight/2 + 5}" r="5" fill="${labelColor}" opacity="0.8"/>`);
+      g.push(`<circle cx="${PADDING.l - 105}" cy="${staffTop + staffHeight/2 + 8}" r="6" fill="${labelColor}" opacity="0.8"/>`);
     }
 
     // Clef
@@ -309,12 +309,12 @@
   }
 
   function renderTrebleClef(g, staffTop) {
-    g.push(`<text x="${PADDING.l - 60}" y="${staffTop + staffGap*3.2}" fill="#cfe0ff" font-size="70" font-family="'Segoe UI Symbol', 'Noto Emoji', sans-serif">𝄞</text>`);
+    g.push(`<text x="${PADDING.l - 75}" y="${staffTop + staffGap*3.2}" fill="#cfe0ff" font-size="95" font-family="'Segoe UI Symbol', 'Noto Emoji', sans-serif">𝄞</text>`);
   }
 
   function renderBassClef(g, staffTop) {
     // Bass clef symbol (F clef) - using Unicode
-    g.push(`<text x="${PADDING.l - 60}" y="${staffTop + staffGap*2.5}" fill="#cfe0ff" font-size="55" font-family="'Segoe UI Symbol', 'Noto Emoji', sans-serif">𝄢</text>`);
+    g.push(`<text x="${PADDING.l - 75}" y="${staffTop + staffGap*2.5}" fill="#cfe0ff" font-size="75" font-family="'Segoe UI Symbol', 'Noto Emoji', sans-serif">𝄢</text>`);
   }
 
   function renderNoteLabels(g, staffIndex) {
@@ -344,7 +344,7 @@
       if (nl.midi >= staff.midiRange[0] && nl.midi <= staff.midiRange[1]) {
         const y = midiToStaffY(nl.midi, staffIndex);
         if (y >= staffTop - staffGap * 2 && y <= staffBottom + staffGap * 2) {
-          g.push(`<text x="${W - PADDING.r + 10}" y="${y + 4}" fill="#4a6a8a" font-size="11" text-anchor="start" font-family="monospace">${nl.label}</text>`);
+          g.push(`<text x="${W - PADDING.r + 15}" y="${y + 5}" fill="#4a6a8a" font-size="13" text-anchor="start" font-family="monospace">${nl.label}</text>`);
         }
       }
     }
@@ -358,9 +358,9 @@
 
   function renderSingleNote(g, n) {
     const staff = STAVES[n.staffIndex];
-    const x = xForBeat(n.startBeat) + 20;
+    const x = xForBeat(n.startBeat) + 25;
     const y = midiToStaffY(n.midi, n.staffIndex);
-    const w = 18, h = 13;
+    const w = 22, h = 16; // larger note heads
     const sel = n.id === selectedId;
     const color = sel ? '#ffffff' : staff.color;
 
@@ -404,15 +404,15 @@
     }
 
     for (const ly of ledgerYs) {
-      g.push(`<line x1="${x-12}" y1="${ly}" x2="${x+12}" y2="${ly}" stroke="#cfe0ff" stroke-width="2" />`);
+      g.push(`<line x1="${x-16}" y1="${ly}" x2="${x+16}" y2="${ly}" stroke="#cfe0ff" stroke-width="2.5" />`);
     }
   }
 
   function renderAccidental(g, n, x, y, color) {
     if (n.accidental === 1) {
-      g.push(`<text x="${x-24}" y="${y+5}" fill="${color}" font-size="20">#</text>`);
+      g.push(`<text x="${x-30}" y="${y+7}" fill="${color}" font-size="26">#</text>`);
     } else if (n.accidental === -1) {
-      g.push(`<text x="${x-24}" y="${y+5}" fill="${color}" font-size="20">♭</text>`);
+      g.push(`<text x="${x-30}" y="${y+7}" fill="${color}" font-size="26">♭</text>`);
     }
   }
 
@@ -428,15 +428,15 @@
     const up = y > staffMiddle;
 
     if (up) {
-      g.push(`<line x1="${x+w-3}" y1="${y}" x2="${x+w-3}" y2="${y-40}" stroke="${color}" stroke-width="2" />`);
+      g.push(`<line x1="${x+w-3}" y1="${y}" x2="${x+w-3}" y2="${y-55}" stroke="${color}" stroke-width="2.5" />`);
     } else {
-      g.push(`<line x1="${x-w+3}" y1="${y}" x2="${x-w+3}" y2="${y+40}" stroke="${color}" stroke-width="2" />`);
+      g.push(`<line x1="${x-w+3}" y1="${y}" x2="${x-w+3}" y2="${y+55}" stroke="${color}" stroke-width="2.5" />`);
     }
   }
 
   function renderDurationIndicator(g, n, x, y) {
     const durTxt = durationText(n.durBeats);
-    g.push(`<text x="${x-8}" y="${y+30}" fill="#5a7a9a" font-size="12">${durTxt}</text>`);
+    g.push(`<text x="${x-10}" y="${y+38}" fill="#5a7a9a" font-size="14">${durTxt}</text>`);
   }
 
   function durationText(d) {
