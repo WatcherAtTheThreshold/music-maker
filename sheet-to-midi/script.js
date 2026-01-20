@@ -295,15 +295,16 @@
   function renderPitchGuides(g, staffIndex) {
     const staffTop = getStaffTop(staffIndex);
     const staffBottom = getStaffBottom(staffIndex);
-    const noteAreaTop = staffTop - staffGap * 3;
-    const noteAreaBottom = staffBottom + staffGap * 3;
+    // Limit guides to just 1-2 ledger lines above/below staff (within background panel)
+    const noteAreaTop = staffTop - staffGap * 1.5;
+    const noteAreaBottom = staffBottom + staffGap * 1.5;
 
     for (let y = noteAreaTop; y <= noteAreaBottom; y += staffGap / 2) {
       const isOnStaffLine = (y >= staffTop && y <= staffBottom &&
         Math.abs((y - staffTop) % staffGap) < 1);
 
       if (!isOnStaffLine) {
-        g.push(`<line x1="${PADDING.l}" y1="${y}" x2="${W-PADDING.r}" y2="${y}" stroke="#2a3a4a" stroke-opacity=".2" stroke-width="1" stroke-dasharray="4,8" />`);
+        g.push(`<line x1="${PADDING.l}" y1="${y}" x2="${W-PADDING.r}" y2="${y}" stroke="#2a3a4a" stroke-opacity=".15" stroke-width="1" stroke-dasharray="6,12" />`);
       }
     }
   }
