@@ -393,9 +393,9 @@ header h1 {
 
 #staff {
   width: 100%;
-  max-width: 2000px;
-  height: 930px;
-  min-height: 800px;
+  max-width: 2400px;
+  height: 700px;
+  min-height: 600px;
   display: block;
   border: 2px solid var(--terminal-border);
   border-radius: 6px;
@@ -407,18 +407,25 @@ header h1 {
   box-shadow: var(--inset-shadow);
 }
 
-/* Responsive staff sizing */
+/* Responsive staff sizing - 3 staves need more height */
 @media (min-height: 900px) {
   #staff {
-    height: calc(100vh - 320px);
-    max-height: 1000px;
+    height: calc(100vh - 280px);
+    max-height: 900px;
   }
 }
 
-@media (min-height: 1200px) {
+@media (min-height: 1100px) {
   #staff {
-    height: calc(100vh - 280px);
-    max-height: 1200px;
+    height: calc(100vh - 260px);
+    max-height: 1100px;
+  }
+}
+
+@media (min-height: 1400px) {
+  #staff {
+    height: calc(100vh - 240px);
+    max-height: 1400px;
   }
 }
 
@@ -550,8 +557,8 @@ kbd {
   }
 
   #staff {
-    height: 500px;
-    min-height: 400px;
+    height: 550px;
+    min-height: 450px;
   }
 }
 
@@ -585,8 +592,8 @@ kbd {
   }
 
   #staff {
-    height: 350px;
-    min-height: 300px;
+    height: 450px;
+    min-height: 380px;
   }
 }
 
