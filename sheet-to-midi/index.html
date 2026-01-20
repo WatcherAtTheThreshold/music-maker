@@ -13,10 +13,16 @@
       <h1>Sheet Music → MIDI</h1>
     </header>
 
-    <section class="panel controls" id="controls">
+    <section class="panel" id="controlsPanel">
+      <div class="panel-header">Controls</div>
+      <div class="panel-content controls" id="controls">
       <div class="cell" style="grid-column: span 2; min-width: 120px">
         <label for="bpm">Tempo (BPM)</label>
         <input id="bpm" type="number" value="100" min="30" max="240" />
+      </div>
+      <div class="cell" style="grid-column: span 2; min-width: 120px">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="70" />
       </div>
       <div class="cell" style="grid-column: span 2; min-width: 140px">
         <label>Snap</label>
@@ -56,6 +62,7 @@
         <label>Tip</label>
         <div style="color:var(--muted)">Click on the staff to add notes. This prototype supports a <b>treble clef</b>, key of C, and a single voice. Notes snap to the chosen subdivision. Drag to move within a beat; click a note to select; press <kbd>Delete</kbd> to remove.</div>
       </div>
+      </div>
     </section>
 
     <section class="panel staff-wrap">
@@ -67,5 +74,13 @@
   </div>
 
   <script src="script.js"></script>
+  <script>
+    // Collapsible panels
+    document.querySelectorAll('.panel-header').forEach(header => {
+      header.addEventListener('click', () => {
+        header.parentElement.classList.toggle('collapsed');
+      });
+    });
+  </script>
 </body>
 </html>
