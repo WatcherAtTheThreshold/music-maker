@@ -1,6 +1,6 @@
 /* ====================================================
-   SHEET MUSIC TO MIDI - MAIN JAVASCRIPT
-   Minimal Staff Editor Logic
+   SHEET MUSIC TO MIDI - THREE-STAFF SYSTEM
+   Melody + Right Hand (Treble) + Left Hand (Bass)
    ==================================================== */
 
 (() => {
@@ -11,23 +11,60 @@
   const TIME_SIG_DEN = 4;
   const TOTAL_BEATS = MEASURES * TIME_SIG_NUM;
 
+  /* === STAFF CONFIGURATION === */
+  const STAVES = [
+    { name: 'Melody', clef: 'treble', midiRange: [60, 81], channel: 0, color: '#cfe0ff', waveform: 'sine' },
+    { name: 'Right Hand', clef: 'treble', midiRange: [60, 81], channel: 1, color: '#a5d6a7', waveform: 'triangle' },
+    { name: 'Left Hand', clef: 'bass', midiRange: [36, 64], channel: 2, color: '#ffcc80', waveform: 'sawtooth' }
+  ];
+
   /* === SVG LAYOUT CONSTANTS === */
   const svg = document.getElementById('staff');
-  const W = 2400, H = 930; // viewBox units (enlarged for better usability)
-  const PADDING = { l: 60, r: 50, t: 60, b: 60 };
+  const W = 2400, H = 1600; // viewBox units (tall enough for 3 staves)
+  const PADDING = { l: 100, r: 50, t: 40, b: 40 };
   const innerW = W - PADDING.l - PADDING.r;
   const innerH = H - PADDING.t - PADDING.b;
 
   /* === STAFF POSITIONING === */
-  const staffTop = PADDING.t + 160;
-  const staffGap = 24; // distance between staff lines (doubled for larger staff)
+  const staffGap = 20;      // distance between staff lines
   const staffLines = 5;
-  const staffBottom = staffTop + (staffLines - 1) * staffGap;
-  const staffHeight = staffBottom - staffTop;
+  const staffHeight = (staffLines - 1) * staffGap; // 80px per staff
+  const staffSpacing = 280; // vertical distance between staff tops
+  const firstStaffTop = PADDING.t + 80;
+
+  // Calculate staff top position
+  function getStaffTop(staffIndex) {
+    return firstStaffTop + staffIndex * staffSpacing;
+  }
+
+  function getStaffBottom(staffIndex) {
+    return getStaffTop(staffIndex) + staffHeight;
+  }
+
+  // Determine which staff a Y coordinate is on
+  function getStaffForY(y) {
+    for (let i = 0; i < STAVES.length; i++) {
+      const top = getStaffTop(i) - staffGap * 4; // ledger line area above
+      const bottom = getStaffBottom(i) + staffGap * 4; // ledger line area below
+      if (y >= top && y <= bottom) {
+        return i;
+      }
+    }
+    // Return closest staff if between staves
+    let closest = 0;
+    let minDist = Infinity;
+    for (let i = 0; i < STAVES.length; i++) {
+      const center = getStaffTop(i) + staffHeight / 2;
+      const dist = Math.abs(y - center);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = i;
+      }
+    }
+    return closest;
+  }
 
   /* === PITCH AND NOTE SYSTEM === */
-  // Support C4..A5 range
-  const PITCHES = [];
   const NOTE_ORDER = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
   function midiToName(n) {
@@ -36,34 +73,59 @@
     return name + oct;
   }
 
-  // Build supported pitch range
-  function initializePitches() {
-    // E4 midi = 64; C4 midi = 60; A5 midi = 81
-    for (let m = 60; m <= 81; m++) PITCHES.push(m);
+  /* === COORDINATE MAPPING FUNCTIONS === */
+
+  // Convert MIDI note to staff Y position for a specific staff
+  function midiToStaffY(midi, staffIndex) {
+    const staff = STAVES[staffIndex];
+    const staffTop = getStaffTop(staffIndex);
+    const staffBottom = getStaffBottom(staffIndex);
+
+    if (staff.clef === 'treble') {
+      return midiToTrebleY(midi, staffTop, staffBottom);
+    } else {
+      return midiBassY(midi, staffTop, staffBottom);
+    }
   }
 
-  /* === COORDINATE MAPPING FUNCTIONS === */
-  
-  // Convert MIDI note to staff Y position
-  function midiToStaffY(midi) {
-    // Reference: Indices where each natural pitch sits relative to E4 (line index 0)
+  // Treble clef: E4 (64) on bottom line
+  function midiToTrebleY(midi, staffTop, staffBottom) {
     const naturals = { 'C': -2, 'D': -1, 'E': 0, 'F': 1, 'G': 2, 'A': 3, 'B': 4 };
 
     const semitone = midi % 12;
     const oct = Math.floor(midi / 12) - 1;
     const baseName = NOTE_ORDER[semitone];
     const natural = baseName[0];
-    const acc = baseName.length > 1 ? (baseName.includes('#') ? 1 : -1) : 0;
 
-    // Compute diatonic steps from E4
     const NAT_TO_SEMI = { 'C':0,'D':2,'E':4,'F':5,'G':7,'A':9,'B':11 };
     const naturalSemi = NAT_TO_SEMI[natural];
     const naturalMidi = (oct+1)*12 + naturalSemi;
 
-    // Count diatonic steps between E4 (64) natural and this natural pitch
     const stepsFromE4 = diatonicDistance(64, naturalMidi, 'E', natural);
-    // Each diatonic step is half a staffGap (lines & spaces alternating)
     let y = staffBottom - stepsFromE4 * (staffGap/2);
+
+    return y;
+  }
+
+  // Bass clef: G2 (43) on bottom line, or A2 (45) on first space
+  // F3 (53) on 4th line from bottom
+  function midiBassY(midi, staffTop, staffBottom) {
+    // In bass clef: G2 = bottom line (midi 43)
+    // Each diatonic step up moves up half a staffGap
+    const naturals = { 'C': 0, 'D': 1, 'E': 2, 'F': 3, 'G': 4, 'A': 5, 'B': 6 };
+
+    const semitone = midi % 12;
+    const oct = Math.floor(midi / 12) - 1;
+    const baseName = NOTE_ORDER[semitone];
+    const natural = baseName[0];
+
+    const NAT_TO_SEMI = { 'C':0,'D':2,'E':4,'F':5,'G':7,'A':9,'B':11 };
+    const naturalSemi = NAT_TO_SEMI[natural];
+    const naturalMidi = (oct+1)*12 + naturalSemi;
+
+    // G2 (midi 43) sits on bottom line of bass clef
+    const stepsFromG2 = diatonicDistance(43, naturalMidi, 'G', natural);
+    let y = staffBottom - stepsFromG2 * (staffGap/2);
 
     return y;
   }
@@ -71,110 +133,93 @@
   function diatonicDistance(m1, m2, letter1, letter2) {
     const LETTERS = ['C','D','E','F','G','A','B'];
     function nextLetter(l){ return LETTERS[(LETTERS.indexOf(l)+1)%7]; }
-    
+
     let steps = 0;
-    let L = letter1; 
+    let L = letter1;
     let midiN = m1;
     const semis = { 'C':0,'D':2,'E':4,'F':5,'G':7,'A':9,'B':11 };
-    
+
     while (!(L===letter2 && midiN===m2)){
       const nextL = nextLetter(L);
       let oct = Math.floor(midiN/12) - 1;
       let candidate = (Math.floor((midiN+1)/12))*12 + semis[nextL];
       while (candidate <= midiN) candidate += 12;
-      L = nextL; 
-      midiN = candidate; 
+      L = nextL;
+      midiN = candidate;
       steps++;
-      if (steps>100) break; // safety break
+      if (steps>100) break;
     }
     return steps * ( (m2>=m1)? 1 : -1 );
   }
 
-  // Quantize Y coordinate to closest supported MIDI note
-  function quantizeYToMidi(y) {
-    let best = 60; 
+  // Quantize Y coordinate to closest supported MIDI note for a specific staff
+  function quantizeYToMidi(y, staffIndex) {
+    const staff = STAVES[staffIndex];
+    const [minMidi, maxMidi] = staff.midiRange;
+
+    let best = minMidi;
     let bestDist = 1e9;
-    for (let m of PITCHES){
-      const yy = midiToStaffY(m);
-      const d = Math.abs(y-yy);
-      if (d < bestDist){ 
-        bestDist = d; 
-        best = m; 
+
+    for (let m = minMidi; m <= maxMidi; m++) {
+      const yy = midiToStaffY(m, staffIndex);
+      const d = Math.abs(y - yy);
+      if (d < bestDist) {
+        bestDist = d;
+        best = m;
       }
     }
     return best;
   }
 
   /* === TIME GRID FUNCTIONS === */
-  
-  // Convert beat position to X coordinate
+
   function xForBeat(beat) {
     return PADDING.l + (beat / TOTAL_BEATS) * innerW;
   }
 
-  // Convert X coordinate to beat position with snapping
   function beatForX(x) {
     const rel = (x - PADDING.l) / innerW;
     const rawBeat = rel * TOTAL_BEATS;
     const snap = parseInt(document.getElementById('snap').value, 10);
-    const stepBeat = 4 / snap; // 4/4 time: if snap=8 -> each step = 0.5
+    const stepBeat = 4 / snap;
     return Math.max(0, Math.min(TOTAL_BEATS, Math.round(rawBeat/stepBeat)*stepBeat));
   }
 
   /* === APPLICATION STATE === */
-  let notes = []; // { id, midi, startBeat, durBeats, accidental: -1|0|1 }
+  let notes = []; // { id, midi, startBeat, durBeats, accidental, staffIndex }
   let selectedId = null;
   let nextId = 1;
   const history = [];
+  let activeStaff = 0; // Currently selected staff for new notes
 
   /* === HISTORY MANAGEMENT === */
-  
-  function pushHistory() { 
-    history.push(JSON.stringify(notes)); 
-    if (history.length > 100) history.shift(); 
+
+  function pushHistory() {
+    history.push(JSON.stringify(notes));
+    if (history.length > 100) history.shift();
   }
 
-  function undo() { 
-    if (history.length) { 
-      notes = JSON.parse(history.pop()); 
-      selectedId = null; 
-      render(); 
+  function undo() {
+    if (history.length) {
+      notes = JSON.parse(history.pop());
+      selectedId = null;
+      render();
     }
   }
 
   /* === RENDERING FUNCTIONS === */
-  
+
   function render() {
     const g = [];
 
-    // SVG definitions and filters
     renderSVGDefinitions(g);
 
-    // Background panel
-    renderBackgroundPanel(g);
+    // Render each staff
+    for (let i = 0; i < STAVES.length; i++) {
+      renderStaff(g, i);
+    }
 
-    // Measure grid
-    renderMeasureGrid(g);
-
-    // Pitch guides (subtle lines for note placement)
-    renderPitchGuides(g);
-
-    // Staff lines
-    renderStaffLines(g);
-
-    // Beat tick marks
-    renderBeatTicks(g);
-
-    // Measure numbers
-    renderBeatLabels(g);
-
-    // Note name labels on left
-    renderNoteLabels(g);
-
-    // Treble clef
-    renderTrebleClef(g);
-
-    // All notes
+    // Render all notes
     renderAllNotes(g);
 
     svg.innerHTML = g.join('\n');
@@ -188,92 +233,121 @@
     </defs>`);
   }
 
-  function renderBackgroundPanel(g) {
-    g.push(`<rect x="${PADDING.l-30}" y="${staffTop-80}" width="${innerW+60}" height="${staffHeight+160}" rx="20" ry="20" fill="#0d1320" stroke="#1f2a3a"/>`);
-  }
+  function renderStaff(g, staffIndex) {
+    const staff = STAVES[staffIndex];
+    const staffTop = getStaffTop(staffIndex);
+    const staffBottom = getStaffBottom(staffIndex);
 
-  function renderMeasureGrid(g) {
+    // Background panel
+    g.push(`<rect x="${PADDING.l-40}" y="${staffTop-50}" width="${innerW+80}" height="${staffHeight+100}" rx="12" ry="12" fill="#0d1320" stroke="#1f2a3a"/>`);
+
+    // Measure grid shading
     for (let i = 0; i < MEASURES; i++) {
       const x0 = xForBeat(i*4), x1 = xForBeat((i+1)*4);
-      g.push(`<rect x="${x0}" y="${staffTop-36}" width="${x1-x0}" height="${staffHeight+72}" fill="${i%2? '#0b1220':'#0a101a'}" opacity=".45"/>`);
+      g.push(`<rect x="${x0}" y="${staffTop-30}" width="${x1-x0}" height="${staffHeight+60}" fill="${i%2? '#0b1220':'#0a101a'}" opacity=".45"/>`);
     }
-  }
 
-  function renderPitchGuides(g) {
-    // Render subtle horizontal lines for spaces between staff lines (where notes go)
-    // This helps users see where they can place notes
-    const noteAreaTop = staffTop - staffGap * 3; // Above staff for ledger lines
-    const noteAreaBottom = staffBottom + staffGap * 3; // Below staff for ledger lines
+    // Pitch guides
+    renderPitchGuides(g, staffIndex);
 
-    // Draw subtle guides for each possible note position (every half staff gap)
-    for (let y = noteAreaTop; y <= noteAreaBottom; y += staffGap / 2) {
-      // Skip positions that are on staff lines (they're already visible)
-      const isOnStaffLine = (y >= staffTop && y <= staffBottom &&
-        Math.abs((y - staffTop) % staffGap) < 1);
-
-      if (!isOnStaffLine) {
-        g.push(`<line x1="${PADDING.l}" y1="${y}" x2="${W-PADDING.r}" y2="${y}" stroke="#2a3a4a" stroke-opacity=".25" stroke-width="1" stroke-dasharray="4,8" />`);
-      }
-    }
-  }
-
-  function renderStaffLines(g) {
+    // Staff lines
     for (let i = 0; i < staffLines; i++) {
       const y = staffTop + i * staffGap;
       g.push(`<line x1="${PADDING.l}" y1="${y}" x2="${W-PADDING.r}" y2="${y}" stroke="#cfe0ff" stroke-opacity=".7" stroke-width="2" />`);
     }
-  }
 
-  function renderBeatTicks(g) {
+    // Beat tick marks
     for (let b = 0; b <= TOTAL_BEATS; b++) {
       const x = xForBeat(b);
       const isBar = (b % TIME_SIG_NUM) === 0;
-      g.push(`<line x1="${x}" y1="${staffTop-36}" x2="${x}" y2="${staffBottom+36}" stroke="${isBar? '#6aa2ff':'#35507a'}" stroke-opacity="${isBar? .8:.35}" stroke-width="${isBar? 2.5:1.5}" />`);
+      g.push(`<line x1="${x}" y1="${staffTop-30}" x2="${x}" y2="${staffBottom+30}" stroke="${isBar? '#6aa2ff':'#35507a'}" stroke-opacity="${isBar? .8:.35}" stroke-width="${isBar? 2.5:1.5}" />`);
     }
+
+    // Measure numbers (only on first staff)
+    if (staffIndex === 0) {
+      for (let b = 0; b < TOTAL_BEATS; b += 4) {
+        const x = xForBeat(b) + (xForBeat(b+4) - xForBeat(b)) / 2;
+        const measureNum = Math.floor(b / 4) + 1;
+        g.push(`<text x="${x}" y="${staffTop - 60}" fill="#6aa2ff" font-size="16" text-anchor="middle" font-family="monospace">${measureNum}</text>`);
+      }
+    }
+
+    // Staff label
+    const labelColor = staff.color;
+    g.push(`<text x="${PADDING.l - 90}" y="${staffTop + staffHeight/2 - 15}" fill="${labelColor}" font-size="12" text-anchor="end" font-family="monospace">${staff.name}</text>`);
+
+    // Active indicator
+    if (staffIndex === activeStaff) {
+      g.push(`<circle cx="${PADDING.l - 90}" cy="${staffTop + staffHeight/2 + 5}" r="5" fill="${labelColor}" opacity="0.8"/>`);
+    }
+
+    // Clef
+    if (staff.clef === 'treble') {
+      renderTrebleClef(g, staffTop);
+    } else {
+      renderBassClef(g, staffTop);
+    }
+
+    // Note labels on left (only show a few key notes)
+    renderNoteLabels(g, staffIndex);
   }
 
-  function renderBeatLabels(g) {
-    // Add beat numbers below the staff for clarity
-    for (let b = 0; b < TOTAL_BEATS; b++) {
-      const x = xForBeat(b) + (xForBeat(b+1) - xForBeat(b)) / 2;
-      const measureNum = Math.floor(b / 4) + 1;
-      const beatInMeasure = (b % 4) + 1;
+  function renderPitchGuides(g, staffIndex) {
+    const staffTop = getStaffTop(staffIndex);
+    const staffBottom = getStaffBottom(staffIndex);
+    const noteAreaTop = staffTop - staffGap * 3;
+    const noteAreaBottom = staffBottom + staffGap * 3;
 
-      // Only show measure and beat 1 markers
-      if (b % 4 === 0) {
-        g.push(`<text x="${x}" y="${staffBottom + 70}" fill="#6aa2ff" font-size="18" text-anchor="middle" font-family="monospace">${measureNum}</text>`);
+    for (let y = noteAreaTop; y <= noteAreaBottom; y += staffGap / 2) {
+      const isOnStaffLine = (y >= staffTop && y <= staffBottom &&
+        Math.abs((y - staffTop) % staffGap) < 1);
+
+      if (!isOnStaffLine) {
+        g.push(`<line x1="${PADDING.l}" y1="${y}" x2="${W-PADDING.r}" y2="${y}" stroke="#2a3a4a" stroke-opacity=".2" stroke-width="1" stroke-dasharray="4,8" />`);
       }
     }
   }
 
-  function renderNoteLabels(g) {
-    // Add note name labels on the left side
-    const noteLabels = [
-      { midi: 81, label: 'A5' },
-      { midi: 79, label: 'G5' },
-      { midi: 77, label: 'F5' },
-      { midi: 76, label: 'E5' },
-      { midi: 74, label: 'D5' },
-      { midi: 72, label: 'C5' },
-      { midi: 71, label: 'B4' },
-      { midi: 69, label: 'A4' },
-      { midi: 67, label: 'G4' },
-      { midi: 65, label: 'F4' },
-      { midi: 64, label: 'E4' },
-      { midi: 62, label: 'D4' },
-      { midi: 60, label: 'C4' }
-    ];
+  function renderTrebleClef(g, staffTop) {
+    g.push(`<text x="${PADDING.l - 60}" y="${staffTop + staffGap*3.2}" fill="#cfe0ff" font-size="70" font-family="'Segoe UI Symbol', 'Noto Emoji', sans-serif">𝄞</text>`);
+  }
+
+  function renderBassClef(g, staffTop) {
+    // Bass clef symbol (F clef) - using Unicode
+    g.push(`<text x="${PADDING.l - 60}" y="${staffTop + staffGap*2.5}" fill="#cfe0ff" font-size="55" font-family="'Segoe UI Symbol', 'Noto Emoji', sans-serif">𝄢</text>`);
+  }
+
+  function renderNoteLabels(g, staffIndex) {
+    const staff = STAVES[staffIndex];
+    const staffTop = getStaffTop(staffIndex);
+    const staffBottom = getStaffBottom(staffIndex);
+
+    // Key reference notes for each clef
+    let noteLabels;
+    if (staff.clef === 'treble') {
+      noteLabels = [
+        { midi: 79, label: 'G5' },
+        { midi: 72, label: 'C5' },
+        { midi: 67, label: 'G4' },
+        { midi: 60, label: 'C4' }
+      ];
+    } else {
+      noteLabels = [
+        { midi: 60, label: 'C4' },
+        { midi: 53, label: 'F3' },
+        { midi: 48, label: 'C3' },
+        { midi: 41, label: 'F2' }
+      ];
+    }
 
     for (const nl of noteLabels) {
-      const y = midiToStaffY(nl.midi);
-      if (y >= staffTop - staffGap * 2 && y <= staffBottom + staffGap * 2) {
-        g.push(`<text x="${PADDING.l - 55}" y="${y + 5}" fill="#4a6a8a" font-size="14" text-anchor="end" font-family="monospace">${nl.label}</text>`);
+      if (nl.midi >= staff.midiRange[0] && nl.midi <= staff.midiRange[1]) {
+        const y = midiToStaffY(nl.midi, staffIndex);
+        if (y >= staffTop - staffGap * 2 && y <= staffBottom + staffGap * 2) {
+          g.push(`<text x="${W - PADDING.r + 10}" y="${y + 4}" fill="#4a6a8a" font-size="11" text-anchor="start" font-family="monospace">${nl.label}</text>`);
+        }
       }
     }
-  }
-
-  function renderTrebleClef(g) {
-    g.push(`<text x="${PADDING.l-48}" y="${staffTop + staffGap*3.2}" fill="#cfe0ff" font-size="80" font-family="'Segoe UI Symbol', 'Noto Emoji', sans-serif">𝄞</text>`);
   }
 
   function renderAllNotes(g) {
@@ -283,104 +357,115 @@
   }
 
   function renderSingleNote(g, n) {
-    const x = xForBeat(n.startBeat) + 20; // slight inset
-    const y = midiToStaffY(n.midi);
-    const w = 22, h = 16; // larger note heads for bigger staff
+    const staff = STAVES[n.staffIndex];
+    const x = xForBeat(n.startBeat) + 20;
+    const y = midiToStaffY(n.midi, n.staffIndex);
+    const w = 18, h = 13;
     const sel = n.id === selectedId;
+    const color = sel ? '#ffffff' : staff.color;
 
     // Render ledger lines if needed
-    renderLedgerLines(g, n.midi, x);
-    
+    renderLedgerLines(g, n.midi, x, n.staffIndex);
+
     // Render accidental
-    renderAccidental(g, n, x, y);
-    
+    renderAccidental(g, n, x, y, color);
+
     // Render note head
-    renderNoteHead(g, x, y, w, h, sel);
-    
+    renderNoteHead(g, x, y, w, h, color);
+
     // Render stem
-    renderNoteStem(g, n, x, y, w);
-    
+    renderNoteStem(g, n, x, y, w, color);
+
     // Render duration indicator
     renderDurationIndicator(g, n, x, y);
   }
 
-  function renderLedgerLines(g, midi, x) {
-    const ledgerYs = getLedgerYPositions(midi);
+  function renderLedgerLines(g, midi, x, staffIndex) {
+    const staff = STAVES[staffIndex];
+    const staffTop = getStaffTop(staffIndex);
+    const staffBottom = getStaffBottom(staffIndex);
+    const yNote = midiToStaffY(midi, staffIndex);
+
+    // Collect ledger line positions
+    const ledgerYs = [];
+
+    // Check for ledger lines below staff
+    if (yNote > staffBottom + 2) {
+      for (let y = staffBottom + staffGap; y <= yNote + staffGap/4; y += staffGap) {
+        ledgerYs.push(y);
+      }
+    }
+
+    // Check for ledger lines above staff
+    if (yNote < staffTop - 2) {
+      for (let y = staffTop - staffGap; y >= yNote - staffGap/4; y -= staffGap) {
+        ledgerYs.push(y);
+      }
+    }
+
     for (const ly of ledgerYs) {
-      g.push(`<line x1="${x-14}" y1="${ly}" x2="${x+14}" y2="${ly}" stroke="#cfe0ff" stroke-width="2" />`);
+      g.push(`<line x1="${x-12}" y1="${ly}" x2="${x+12}" y2="${ly}" stroke="#cfe0ff" stroke-width="2" />`);
     }
   }
 
-  function getLedgerYPositions(midi) {
-    const ly = [];
-    const yNote = midiToStaffY(midi);
-    
-    // Below staff (C4, D4, etc.)
-    if (yNote > staffBottom) {
-      for (let mm = 64-2; mm >= 60; mm -= 2) { // D4 line-ish to C4 line-ish
-        const yy = midiToStaffY(mm);
-        if (yy >= staffBottom + 4 && yNote >= yy - 2) ly.push(yy);
-      }
-    } 
-    // Above staff 
-    else if (yNote < staffTop) {
-      for (let mm = 77+2; mm <= 81; mm += 2) {
-        const yy = midiToStaffY(mm);
-        if (yy <= staffTop - 4 && yNote <= yy + 2) ly.push(yy);
-      }
-    }
-    return ly;
-  }
-
-  function renderAccidental(g, n, x, y) {
+  function renderAccidental(g, n, x, y, color) {
     if (n.accidental === 1) {
-      g.push(`<text x="${x-28}" y="${y+6}" fill="#cfe0ff" font-size="24">#</text>`);
+      g.push(`<text x="${x-24}" y="${y+5}" fill="${color}" font-size="20">#</text>`);
     } else if (n.accidental === -1) {
-      g.push(`<text x="${x-28}" y="${y+6}" fill="#cfe0ff" font-size="24">♭</text>`);
+      g.push(`<text x="${x-24}" y="${y+5}" fill="${color}" font-size="20">♭</text>`);
     }
   }
 
-  function renderNoteHead(g, x, y, w, h, selected) {
-    const color = selected ? '#a5d6a7' : '#cfe0ff';
+  function renderNoteHead(g, x, y, w, h, color) {
     g.push(`<ellipse cx="${x}" cy="${y}" rx="${w}" ry="${h}" fill="${color}" stroke="#7fa2c4" stroke-width="1" filter="url(#soft)" />`);
   }
 
-  function renderNoteStem(g, n, x, y, w) {
-    const up = n.midi < 71; // B4 = 71, stems up for notes below
+  function renderNoteStem(g, n, x, y, w, color) {
+    const staff = STAVES[n.staffIndex];
+    // Stem direction based on note position relative to middle of staff
+    const staffTop = getStaffTop(n.staffIndex);
+    const staffMiddle = staffTop + staffHeight / 2;
+    const up = y > staffMiddle;
+
     if (up) {
-      g.push(`<line x1="${x+w-3}" y1="${y}" x2="${x+w-3}" y2="${y-50}" stroke="#cfe0ff" stroke-width="2.5" />`);
+      g.push(`<line x1="${x+w-3}" y1="${y}" x2="${x+w-3}" y2="${y-40}" stroke="${color}" stroke-width="2" />`);
     } else {
-      g.push(`<line x1="${x-w+3}" y1="${y}" x2="${x-w+3}" y2="${y+50}" stroke="#cfe0ff" stroke-width="2.5" />`);
+      g.push(`<line x1="${x-w+3}" y1="${y}" x2="${x-w+3}" y2="${y+40}" stroke="${color}" stroke-width="2" />`);
     }
   }
 
   function renderDurationIndicator(g, n, x, y) {
     const durTxt = durationText(n.durBeats);
-    g.push(`<text x="${x-10}" y="${y+38}" fill="#7fa2c4" font-size="16">${durTxt}</text>`);
+    g.push(`<text x="${x-8}" y="${y+30}" fill="#5a7a9a" font-size="12">${durTxt}</text>`);
   }
 
   function durationText(d) {
-    if (d >= 4) return 'w';  // whole
-    if (d >= 2) return 'h';  // half
-    if (d >= 1) return 'q';  // quarter
-    if (d >= 0.5) return 'e'; // eighth
-    return 's';              // sixteenth
+    if (d >= 4) return 'w';
+    if (d >= 2) return 'h';
+    if (d >= 1) return 'q';
+    if (d >= 0.5) return 'e';
+    return 's';
   }
 
   /* === EVENT HANDLING === */
-  
+
   function handleStaffClick(e) {
     const pt = clientPoint(e);
     const tool = document.getElementById('tool').value;
     const acc = parseInt(document.getElementById('accidental').value, 10);
-    
+
     if (pt.x < PADDING.l || pt.x > W - PADDING.r) return;
 
+    // Determine which staff was clicked
+    const clickedStaff = getStaffForY(pt.y);
+    activeStaff = clickedStaff;
+    updateStaffSelector();
+
     const beat = beatForX(pt.x);
-    const midi = quantizeYToMidi(pt.y);
+    const midi = quantizeYToMidi(pt.y, clickedStaff);
 
     // Check if clicking on existing note
-    const near = findNearbyNote(beat, midi);
+    const near = findNearbyNote(beat, midi, clickedStaff);
 
     if (tool === 'erase') {
       handleEraseAction(near);
@@ -388,42 +473,42 @@
     }
 
     if (near) {
-      // Select existing note
-      selectedId = near.id; 
-      render(); 
+      selectedId = near.id;
+      render();
       return;
     }
 
-    // Create new note
-    createNewNote(beat, midi, acc);
+    createNewNote(beat, midi, acc, clickedStaff);
   }
 
-  function findNearbyNote(beat, midi) {
-    return notes.find(n => 
-      Math.abs(n.startBeat - beat) < 1e-6 && 
-      Math.abs(midiToStaffY(n.midi) - midiToStaffY(midi)) < 8
+  function findNearbyNote(beat, midi, staffIndex) {
+    return notes.find(n =>
+      n.staffIndex === staffIndex &&
+      Math.abs(n.startBeat - beat) < 0.1 &&
+      Math.abs(midiToStaffY(n.midi, staffIndex) - midiToStaffY(midi, staffIndex)) < 10
     );
   }
 
   function handleEraseAction(note) {
-    if (note) { 
-      pushHistory(); 
-      notes = notes.filter(n => n !== note); 
-      selectedId = null; 
-      render(); 
+    if (note) {
+      pushHistory();
+      notes = notes.filter(n => n !== note);
+      selectedId = null;
+      render();
     }
   }
 
-  function createNewNote(beat, midi, accidental) {
+  function createNewNote(beat, midi, accidental, staffIndex) {
     pushHistory();
     const snap = parseInt(document.getElementById('snap').value, 10);
-    const durBeats = 4 / snap; // e.g., 4/4, snap=4 -> 1 beat
-    const n = { 
-      id: nextId++, 
-      midi, 
-      startBeat: beat, 
-      durBeats, 
-      accidental 
+    const durBeats = 4 / snap;
+    const n = {
+      id: nextId++,
+      midi,
+      startBeat: beat,
+      durBeats,
+      accidental,
+      staffIndex
     };
     notes.push(n);
     selectedId = n.id;
@@ -434,18 +519,29 @@
     if (e.key === 'Delete' || e.key === 'Backspace') {
       deleteSelectedNote();
     }
-    if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { 
-      e.preventDefault(); 
-      undo(); 
+    if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      undo();
     }
+    // Number keys to switch active staff
+    if (e.key === '1') { activeStaff = 0; updateStaffSelector(); render(); }
+    if (e.key === '2') { activeStaff = 1; updateStaffSelector(); render(); }
+    if (e.key === '3') { activeStaff = 2; updateStaffSelector(); render(); }
   }
 
   function deleteSelectedNote() {
-    if (selectedId != null) { 
-      pushHistory(); 
-      notes = notes.filter(n => n.id !== selectedId); 
-      selectedId = null; 
-      render(); 
+    if (selectedId != null) {
+      pushHistory();
+      notes = notes.filter(n => n.id !== selectedId);
+      selectedId = null;
+      render();
+    }
+  }
+
+  function updateStaffSelector() {
+    const selector = document.getElementById('activeStaff');
+    if (selector) {
+      selector.value = activeStaff;
     }
   }
 
@@ -457,7 +553,7 @@
   let isLooping = false;
   let activeOscillators = [];
   let playbackTimeout = null;
-  let masterVolume = 0.7; // 0-1 range
+  let masterVolume = 0.7;
 
   function togglePlay() {
     if (isPlaying) {
@@ -476,7 +572,6 @@
     }
     if (!notes.length) return;
 
-    // Resume audio context if suspended
     if (audio.state === 'suspended') {
       audio.resume();
     }
@@ -494,13 +589,11 @@
     const startT = audio.currentTime + 0.05;
     const totalDuration = TOTAL_BEATS * secPerBeat;
 
-    // Schedule all notes
     for (const n of notes) {
       const oscData = playNoteAudio(n, startT, secPerBeat);
       activeOscillators.push(oscData);
     }
 
-    // Schedule next loop or stop
     if (isLooping) {
       playbackTimeout = setTimeout(() => {
         if (isPlaying && isLooping) {
@@ -508,7 +601,6 @@
         }
       }, totalDuration * 1000);
     } else {
-      // Auto-stop after playback completes
       playbackTimeout = setTimeout(() => {
         if (isPlaying && !isLooping) {
           stopPlayback();
@@ -520,13 +612,11 @@
   function stopPlayback() {
     isPlaying = false;
 
-    // Clear scheduled timeout
     if (playbackTimeout) {
       clearTimeout(playbackTimeout);
       playbackTimeout = null;
     }
 
-    // Stop all active oscillators
     const now = audio ? audio.currentTime : 0;
     for (const oscData of activeOscillators) {
       try {
@@ -534,9 +624,7 @@
         oscData.gain.gain.setValueAtTime(oscData.gain.gain.value, now);
         oscData.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
         oscData.osc.stop(now + 0.06);
-      } catch (e) {
-        // Oscillator may have already stopped
-      }
+      } catch (e) {}
     }
     activeOscillators = [];
 
@@ -569,6 +657,7 @@
   }
 
   function playNoteAudio(note, startTime, secPerBeat) {
+    const staff = STAVES[note.staffIndex];
     const t0 = startTime + note.startBeat * secPerBeat;
     const t1 = t0 + note.durBeats * secPerBeat;
     const freq = 440 * Math.pow(2, (note.midi - 69) / 12);
@@ -577,11 +666,14 @@
     const gain = audio.createGain();
 
     osc.frequency.value = freq;
-    osc.type = 'sine';
+    osc.type = staff.waveform;
+
+    // Adjust volume based on waveform (sawtooth is louder)
+    const baseVol = staff.waveform === 'sawtooth' ? 0.1 : 0.2;
 
     gain.gain.setValueAtTime(0.0001, t0);
-    gain.gain.exponentialRampToValueAtTime(0.2, t0 + 0.01);
-    gain.gain.setValueAtTime(0.2, t1 - 0.03);
+    gain.gain.exponentialRampToValueAtTime(baseVol, t0 + 0.01);
+    gain.gain.setValueAtTime(baseVol, t1 - 0.03);
     gain.gain.exponentialRampToValueAtTime(0.0001, t1);
 
     osc.connect(gain).connect(masterGain || audio.destination);
@@ -592,37 +684,33 @@
   }
 
   /* === MIDI EXPORT FUNCTIONS === */
-  
+
   function exportMIDI() {
-    if (!notes.length) { 
-      downloadBytes(new Uint8Array([]), 'empty.mid'); 
-      return; 
+    if (!notes.length) {
+      downloadBytes(new Uint8Array([]), 'empty.mid');
+      return;
     }
-    
+
     const bpm = parseInt(document.getElementById('bpm').value, 10);
     const microPerQuarter = Math.round(60000000 / bpm);
 
-    // Sort notes by start time
-    const seq = [...notes].sort((a,b) => a.startBeat - b.startBeat || a.midi - b.midi);
+    // Sort notes by start time, then by staff
+    const seq = [...notes].sort((a,b) => a.startBeat - b.startBeat || a.staffIndex - b.staffIndex || a.midi - b.midi);
 
-    // Build MIDI track events
     const events = buildMIDIEvents(seq, microPerQuarter);
-    
-    // Wrap in standard MIDI file format
     const midiData = wrapInSMFFormat(events);
-    
+
     downloadBytes(midiData, 'score.mid');
   }
 
   function buildMIDIEvents(sequence, microPerQuarter) {
     const events = [];
-    
-    function pushBytes(...arr) { 
-      for (const x of arr) events.push(x); 
+
+    function pushBytes(...arr) {
+      for (const x of arr) events.push(x);
     }
-    
+
     function vlq(value) {
-      // Variable Length Quantity encoder
       const bytes = [];
       let val = Math.max(0, (value|0) >>> 0);
       const stack = [];
@@ -637,39 +725,49 @@
       return bytes;
     }
 
-    // Meta event: Set tempo
-    pushBytes(...vlq(0), 0xFF, 0x51, 0x03, 
-               (microPerQuarter>>16)&255, 
-               (microPerQuarter>>8)&255, 
+    // Set tempo
+    pushBytes(...vlq(0), 0xFF, 0x51, 0x03,
+               (microPerQuarter>>16)&255,
+               (microPerQuarter>>8)&255,
                microPerQuarter&255);
 
-    // Convert notes to MIDI events
+    // Build events with note on/off pairs, using channels per staff
     let cursor = 0;
-    function beatToTicks(b) { 
-      return Math.round(b * TPQ); 
+    function beatToTicks(b) {
+      return Math.round(b * TPQ);
     }
 
+    // Create all events (note on and note off) and sort by time
+    const allEvents = [];
     for (const n of sequence) {
       const onTick = beatToTicks(n.startBeat);
       const offTick = beatToTicks(n.startBeat + n.durBeats);
-      const channel = 0;
+      const channel = STAVES[n.staffIndex].channel;
       const velocity = 96;
       const midiVal = Math.max(0, Math.min(127, (n.midi + (n.accidental||0))|0));
-      
-      // Note On
-      const dOn = Math.max(0, onTick - cursor);
-      pushBytes(...vlq(dOn), 0x90 | channel, midiVal, velocity);
-      cursor = onTick;
-      
-      // Note Off
-      const dOff = Math.max(0, offTick - cursor);
-      pushBytes(...vlq(dOff), 0x80 | channel, midiVal, 0x40);
-      cursor = offTick;
+
+      allEvents.push({ tick: onTick, type: 'on', channel, midi: midiVal, velocity });
+      allEvents.push({ tick: offTick, type: 'off', channel, midi: midiVal });
+    }
+
+    // Sort by tick time
+    allEvents.sort((a, b) => a.tick - b.tick);
+
+    // Convert to delta times
+    cursor = 0;
+    for (const evt of allEvents) {
+      const delta = Math.max(0, evt.tick - cursor);
+      if (evt.type === 'on') {
+        pushBytes(...vlq(delta), 0x90 | evt.channel, evt.midi, evt.velocity);
+      } else {
+        pushBytes(...vlq(delta), 0x80 | evt.channel, evt.midi, 0x40);
+      }
+      cursor = evt.tick;
     }
 
     // End of track
     pushBytes(...vlq(0), 0xFF, 0x2F, 0x00);
-    
+
     return new Uint8Array(events);
   }
 
@@ -680,15 +778,15 @@
     function u16(n) { return [(n>>>8)&255,n&255]; }
 
     const header = [
-      0x4d,0x54,0x68,0x64, // MThd
-      ...u32(6),           // header length
-      ...u16(0),           // format 0
-      ...u16(1),           // ntrks = 1
-      ...u16(TPQ),         // division
+      0x4d,0x54,0x68,0x64,
+      ...u32(6),
+      ...u16(0),
+      ...u16(1),
+      ...u16(TPQ),
     ];
 
     const trackHeader = [
-      0x4d,0x54,0x72,0x6b, // MTrk
+      0x4d,0x54,0x72,0x6b,
       ...u32(trackLen),
     ];
 
@@ -701,13 +799,13 @@
   }
 
   /* === UTILITY FUNCTIONS === */
-  
+
   function downloadBytes(bytes, filename) {
     const blob = new Blob([bytes], {type: 'audio/midi'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; 
-    a.download = filename; 
+    a.href = url;
+    a.download = filename;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
@@ -720,9 +818,9 @@
   }
 
   function clearAllNotes() {
-    pushHistory(); 
-    notes = []; 
-    selectedId = null; 
+    pushHistory();
+    notes = [];
+    selectedId = null;
     render();
   }
 
@@ -733,60 +831,47 @@
     notes = [];
     selectedId = null;
 
-    // Musical scales for more pleasing melodies
-    const cMajor = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81]; // C4 to A5 in C major
-    const cPentatonic = [60, 62, 64, 67, 69, 72, 74, 76, 79, 81]; // C major pentatonic
-    const scales = [cMajor, cPentatonic];
-    const scale = scales[Math.floor(Math.random() * scales.length)];
+    // Generate for all three staves
+    generateMelodyStaff();
+    generateRightHandStaff();
+    generateBassStaff();
 
-    // Random rhythm patterns
+    render();
+  }
+
+  // Staff 0: Melody - flowing melodic line
+  function generateMelodyStaff() {
+    const scale = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81]; // C major
     const rhythmPatterns = [
-      [1, 1, 1, 1],           // all quarter notes
-      [2, 1, 1],              // half + two quarters
-      [1, 1, 2],              // two quarters + half
-      [0.5, 0.5, 1, 0.5, 0.5, 1], // eighth notes mixed
-      [1, 0.5, 0.5, 1, 1],    // mixed
-      [2, 2],                 // two halves
-      [1, 1, 0.5, 0.5, 1],    // mixed pattern
+      [1, 1, 1, 1],
+      [2, 1, 1],
+      [1, 1, 2],
+      [0.5, 0.5, 1, 0.5, 0.5, 1],
+      [1, 0.5, 0.5, 1, 1],
     ];
 
     let currentBeat = 0;
-    const totalBeats = TOTAL_BEATS;
+    let lastIndex = Math.floor(scale.length / 2);
 
-    // Generate notes across the measures
-    while (currentBeat < totalBeats) {
-      // Pick a random rhythm pattern
+    while (currentBeat < TOTAL_BEATS) {
       const pattern = rhythmPatterns[Math.floor(Math.random() * rhythmPatterns.length)];
 
       for (const dur of pattern) {
-        if (currentBeat >= totalBeats) break;
+        if (currentBeat >= TOTAL_BEATS) break;
 
-        // 15% chance to rest (skip)
-        if (Math.random() < 0.15) {
+        // 20% chance to rest
+        if (Math.random() < 0.2) {
           currentBeat += dur;
           continue;
         }
 
-        // Pick a random note from the scale with some melodic contour
-        let noteIndex;
-        if (notes.length > 0) {
-          // Tend toward stepwise motion
-          const lastNote = notes[notes.length - 1];
-          const lastIndex = scale.indexOf(lastNote.midi);
-          if (lastIndex !== -1 && Math.random() < 0.7) {
-            // Step up or down
-            const step = Math.random() < 0.5 ? -1 : 1;
-            noteIndex = Math.max(0, Math.min(scale.length - 1, lastIndex + step * (Math.floor(Math.random() * 2) + 1)));
-          } else {
-            noteIndex = Math.floor(Math.random() * scale.length);
-          }
-        } else {
-          // Start in the middle of the range
-          noteIndex = Math.floor(scale.length / 2) + Math.floor(Math.random() * 3) - 1;
-        }
+        // Stepwise motion
+        const step = Math.random() < 0.5 ? -1 : 1;
+        const jump = Math.floor(Math.random() * 2) + 1;
+        lastIndex = Math.max(0, Math.min(scale.length - 1, lastIndex + step * jump));
 
-        const midi = scale[noteIndex];
-        const actualDur = Math.min(dur, totalBeats - currentBeat);
+        const midi = scale[lastIndex];
+        const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
 
         if (actualDur > 0) {
           notes.push({
@@ -794,40 +879,109 @@
             midi,
             startBeat: currentBeat,
             durBeats: actualDur,
-            accidental: 0
+            accidental: 0,
+            staffIndex: 0
           });
         }
-
         currentBeat += dur;
       }
     }
+  }
 
-    render();
+  // Staff 1: Right Hand - chords and harmony
+  function generateRightHandStaff() {
+    const chordPatterns = [
+      [[60, 64, 67], 2],       // C major, half note
+      [[62, 65, 69], 2],       // D minor
+      [[64, 67, 71], 2],       // E minor
+      [[65, 69, 72], 2],       // F major
+      [[67, 71, 74], 2],       // G major
+      [[69, 72, 76], 2],       // A minor
+    ];
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const [chord, dur] = chordPatterns[Math.floor(Math.random() * chordPatterns.length)];
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+      // Sometimes only play 2 notes of the chord
+      const notesToPlay = Math.random() < 0.3 ? chord.slice(0, 2) : chord;
+
+      for (const midi of notesToPlay) {
+        notes.push({
+          id: nextId++,
+          midi,
+          startBeat: currentBeat,
+          durBeats: actualDur,
+          accidental: 0,
+          staffIndex: 1
+        });
+      }
+      currentBeat += dur;
+    }
+  }
+
+  // Staff 2: Left Hand (Bass) - bass line with roots and fifths
+  function generateBassStaff() {
+    const bassPatterns = [
+      [48, 2],  // C2
+      [50, 2],  // D2
+      [52, 2],  // E2
+      [53, 2],  // F2
+      [55, 2],  // G2
+      [57, 2],  // A2
+    ];
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const [root, dur] = bassPatterns[Math.floor(Math.random() * bassPatterns.length)];
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+      // Root note
+      notes.push({
+        id: nextId++,
+        midi: root,
+        startBeat: currentBeat,
+        durBeats: actualDur,
+        accidental: 0,
+        staffIndex: 2
+      });
+
+      // Sometimes add fifth (7 semitones up)
+      if (Math.random() < 0.4 && root + 7 <= 64) {
+        notes.push({
+          id: nextId++,
+          midi: root + 7,
+          startBeat: currentBeat,
+          durBeats: actualDur,
+          accidental: 0,
+          staffIndex: 2
+        });
+      }
+
+      currentBeat += dur;
+    }
   }
 
   /* === EVENT LISTENERS SETUP === */
 
   function setupEventListeners() {
-    // Staff interaction
     svg.addEventListener('mousedown', handleStaffClick);
-
-    // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyDown);
 
-    // Control buttons
     document.getElementById('undo').addEventListener('click', undo);
     document.getElementById('clear').addEventListener('click', clearAllNotes);
     document.getElementById('play').addEventListener('click', togglePlay);
     document.getElementById('download').addEventListener('click', exportMIDI);
     document.getElementById('randomize').addEventListener('click', generateRandomMelody);
 
-    // Loop button (if exists)
     const loopBtn = document.getElementById('loop');
     if (loopBtn) {
       loopBtn.addEventListener('click', toggleLoop);
     }
 
-    // Volume slider
     const volumeSlider = document.getElementById('volume');
     if (volumeSlider) {
       volumeSlider.addEventListener('input', (e) => {
@@ -837,17 +991,24 @@
         }
       });
     }
+
+    // Staff selector
+    const staffSelector = document.getElementById('activeStaff');
+    if (staffSelector) {
+      staffSelector.addEventListener('change', (e) => {
+        activeStaff = parseInt(e.target.value, 10);
+        render();
+      });
+    }
   }
 
   /* === INITIALIZATION === */
-  
+
   function initialize() {
-    initializePitches();
     setupEventListeners();
     render();
   }
 
-  // Start the application
   initialize();
 
 })();
