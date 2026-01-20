@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sheet Music → MIDI (Minimal Editor)</title>
+<title>Sheet Music → MIDI (Three-Staff Editor)</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="wrap">
     <header>
-      <span class="badge"><span class="dot"></span> Minimal Staff Editor</span>
+      <span class="badge"><span class="dot"></span> Three-Staff Editor</span>
       <h1>Sheet Music → MIDI</h1>
     </header>
 
@@ -23,6 +23,14 @@
       <div class="cell" style="grid-column: span 2; min-width: 120px">
         <label for="volume">Volume</label>
         <input id="volume" type="range" min="0" max="100" value="70" />
+      </div>
+      <div class="cell" style="grid-column: span 2; min-width: 140px">
+        <label>Active Staff</label>
+        <select id="activeStaff">
+          <option value="0" selected>Melody (Treble)</option>
+          <option value="1">Right Hand (Treble)</option>
+          <option value="2">Left Hand (Bass)</option>
+        </select>
       </div>
       <div class="cell" style="grid-column: span 2; min-width: 140px">
         <label>Snap</label>
@@ -60,14 +68,17 @@
       <div class="sep"></div>
       <div class="cell" style="grid-column: 1 / -1">
         <label>Tip</label>
-        <div style="color:var(--muted)">Click on the staff to add notes. This prototype supports a <b>treble clef</b>, key of C, and a single voice. Notes snap to the chosen subdivision. Drag to move within a beat; click a note to select; press <kbd>Delete</kbd> to remove.</div>
+        <div style="color:var(--muted)">Click on any staff to add notes. <b>Three staves</b>: Melody, Right Hand (both treble clef), and Left Hand (bass clef). Press <kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd> to switch staves. Magic generates all parts. Notes snap to subdivision. Press <kbd>Delete</kbd> to remove selected note.</div>
       </div>
       </div>
     </section>
 
     <section class="panel staff-wrap">
-      <svg id="staff" viewBox="0 0 2400 930" xmlns="http://www.w3.org/2000/svg"></svg>
-      <div class="legend">Range supported: <b>C4</b> (middle C) up to <b>A5</b>. Time signature: <b>4/4</b>. Measures visible: <b>4</b> (expandable in code). Exported MIDI is <b>Format 0</b>, one track with Note On/Off and tempo meta.</div>
+      <svg id="staff" viewBox="0 0 2400 1600" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="legend">
+        <b>Melody</b> (blue) + <b>Right Hand</b> (green): C4-A5 | <b>Left Hand</b> (amber): C2-E4 |
+        Time: <b>4/4</b> | Measures: <b>4</b> | MIDI: 3 channels
+      </div>
     </section>
 
     <div class="footer">Built with plain HTML/CSS/JS. No external libraries. © You ♥</div>
