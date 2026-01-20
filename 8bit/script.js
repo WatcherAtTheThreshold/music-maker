@@ -1050,7 +1050,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const masterVolume = document.getElementById('masterVolume');
   const masterVolumeValue = document.getElementById('masterVolumeValue');
 
-  masterVolume.addEventListener('input', (e) => {
+  masterVolume.addEventListener('input', async (e) => {
+    if (!isInitialized) await initializeAudio();
     const volume = (e.target.value / 100) * 0.7 - 0.3;
     Tone.Destination.volume.value = volume;
     masterVolumeValue.textContent = e.target.value;
