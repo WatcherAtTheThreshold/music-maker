@@ -160,6 +160,49 @@ header h1 {
   margin-bottom: 16px;
 }
 
+/* Collapsible panel header */
+.panel-header {
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--terminal-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--terminal-border);
+  transition: color 0.2s ease;
+}
+
+.panel-header:hover {
+  color: var(--terminal-text);
+}
+
+.panel-header::before {
+  content: '▼';
+  font-size: 0.7em;
+  transition: transform 0.3s ease;
+}
+
+.panel.collapsed .panel-header::before {
+  transform: rotate(-90deg);
+}
+
+.panel.collapsed .panel-content {
+  max-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.panel-content {
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+}
+
 .panel::before {
   content: '';
   position: absolute;
