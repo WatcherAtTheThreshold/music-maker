@@ -452,10 +452,12 @@
   /* === PLAYBACK FUNCTIONS === */
 
   let audio = null;
+  let masterGain = null;
   let isPlaying = false;
   let isLooping = false;
   let activeOscillators = [];
   let playbackTimeout = null;
+  let masterVolume = 0.7; // 0-1 range
 
   function togglePlay() {
     if (isPlaying) {
@@ -466,7 +468,12 @@
   }
 
   function startPlayback() {
-    if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audio) {
+      audio = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audio.createGain();
+      masterGain.connect(audio.destination);
+      masterGain.gain.value = masterVolume;
+    }
     if (!notes.length) return;
 
     // Resume audio context if suspended
@@ -577,7 +584,7 @@
     gain.gain.setValueAtTime(0.2, t1 - 0.03);
     gain.gain.exponentialRampToValueAtTime(0.0001, t1);
 
-    osc.connect(gain).connect(audio.destination);
+    osc.connect(gain).connect(masterGain || audio.destination);
     osc.start(t0);
     osc.stop(t1 + 0.02);
 
@@ -818,6 +825,17 @@
     const loopBtn = document.getElementById('loop');
     if (loopBtn) {
       loopBtn.addEventListener('click', toggleLoop);
+    }
+
+    // Volume slider
+    const volumeSlider = document.getElementById('volume');
+    if (volumeSlider) {
+      volumeSlider.addEventListener('input', (e) => {
+        masterVolume = e.target.value / 100;
+        if (masterGain) {
+          masterGain.gain.value = masterVolume;
+        }
+      });
     }
   }
 
