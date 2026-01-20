@@ -21,6 +21,7 @@
     <!-- Main Controls -->
     <div class="section">
       <div class="section-title">Game Engine</div>
+      <div class="section-content">
       <div class="controls-grid">
         <div class="control-group">
           <div class="control-label">Transport</div>
@@ -105,10 +106,12 @@
         <button class="randomize-button" id="randomizePattern">Magic Dice</button>
         <button class="export-button" id="exportMIDI">Export MIDI</button>
       </div>
+      </div>
 
     <!-- Step Sequencer -->
     <div class="section">
       <div class="section-title">Step Sequencer</div>
+      <div class="section-content">
       
       <!-- Drum Tracks -->
       <div class="track-category">
@@ -212,11 +215,13 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
 
     <!-- Effects -->
     <div class="section">
       <div class="section-title">Sound Effects</div>
+      <div class="section-content">
       <div class="effects-grid">
         <div class="effect-control">
           <div class="effect-name">Echo</div>
@@ -239,11 +244,13 @@
           <div class="slider-value"><span id="distortionValue">0</span>%</div>
         </div>
       </div>
+      </div>
     </div>
 
     <!-- Velocity Editor -->
     <div class="section">
       <div class="section-title">Beat Dynamics</div>
+      <div class="section-content">
       <div class="velocity-info">Click and drag on steps to adjust intensity. Right-click to reset to default.</div>
       <div class="velocity-controls">
         <button class="velocity-preset" data-preset="soft">Gentle</button>
@@ -251,9 +258,18 @@
         <button class="velocity-preset" data-preset="hard">Powerful</button>
         <button class="velocity-preset" data-preset="accent">Dynamic</button>
       </div>
+      </div>
     </div>
   </div>
 
   <script src="script.js"></script>
+  <script>
+    // Collapsible panels
+    document.querySelectorAll('.section-title').forEach(title => {
+      title.addEventListener('click', () => {
+        title.parentElement.classList.toggle('collapsed');
+      });
+    });
+  </script>
 </body>
 </html>
