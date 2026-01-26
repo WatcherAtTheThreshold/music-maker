@@ -695,73 +695,128 @@
     const bpm = parseInt(document.getElementById('bpm').value, 10);
     const microPerQuarter = Math.round(60000000 / bpm);
 
-    // Sort notes by start time, then by staff
-    const seq = [...notes].sort((a,b) => a.startBeat - b.startBeat || a.staffIndex - b.staffIndex || a.midi - b.midi);
-
-    const events = buildMIDIEvents(seq, microPerQuarter);
-    const midiData = wrapInSMFFormat(events);
+    // Build Format 1 MIDI with separate tracks for each staff
+    const midiData = buildMultiTrackMIDI(microPerQuarter);
 
     downloadBytes(midiData, 'score.mid');
   }
 
-  function buildMIDIEvents(sequence, microPerQuarter) {
+  function vlq(value) {
+    const bytes = [];
+    let val = Math.max(0, (value|0) >>> 0);
+    const stack = [];
+    do {
+      stack.push(val & 0x7F);
+      val >>>= 7;
+    } while (val > 0);
+    while (stack.length) {
+      const b = stack.pop();
+      bytes.push(stack.length ? (b | 0x80) : b);
+    }
+    return bytes;
+  }
+
+  function beatToTicks(b) {
+    return Math.round(b * TPQ);
+  }
+
+  function buildMultiTrackMIDI(microPerQuarter) {
+    // Create tempo/conductor track (Track 0)
+    const tempoTrack = buildTempoTrack(microPerQuarter);
+
+    // Create one track per staff (Tracks 1-3)
+    const staffTracks = STAVES.map((staff, staffIndex) => {
+      const staffNotes = notes.filter(n => n.staffIndex === staffIndex);
+      return buildStaffTrack(staffNotes, staff, staffIndex);
+    });
+
+    // Combine all tracks
+    const allTracks = [tempoTrack, ...staffTracks];
+
+    return wrapInSMFFormat1(allTracks);
+  }
+
+  function buildTempoTrack(microPerQuarter) {
     const events = [];
 
     function pushBytes(...arr) {
       for (const x of arr) events.push(x);
     }
 
-    function vlq(value) {
-      const bytes = [];
-      let val = Math.max(0, (value|0) >>> 0);
-      const stack = [];
-      do {
-        stack.push(val & 0x7F);
-        val >>>= 7;
-      } while (val > 0);
-      while (stack.length) {
-        const b = stack.pop();
-        bytes.push(stack.length ? (b | 0x80) : b);
-      }
-      return bytes;
-    }
-
-    // Set tempo
+    // Set tempo at delta time 0
     pushBytes(...vlq(0), 0xFF, 0x51, 0x03,
                (microPerQuarter>>16)&255,
                (microPerQuarter>>8)&255,
                microPerQuarter&255);
 
-    // Build events with note on/off pairs, using channels per staff
-    let cursor = 0;
-    function beatToTicks(b) {
-      return Math.round(b * TPQ);
+    // Time signature 4/4
+    pushBytes(...vlq(0), 0xFF, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08);
+
+    // End of track
+    pushBytes(...vlq(0), 0xFF, 0x2F, 0x00);
+
+    return new Uint8Array(events);
+  }
+
+  function buildStaffTrack(staffNotes, staff, staffIndex) {
+    const events = [];
+
+    function pushBytes(...arr) {
+      for (const x of arr) events.push(x);
     }
 
-    // Create all events (note on and note off) and sort by time
+    // Track name meta event
+    const trackName = staff.name;
+    const nameBytes = [];
+    for (let i = 0; i < trackName.length; i++) {
+      nameBytes.push(trackName.charCodeAt(i));
+    }
+    pushBytes(...vlq(0), 0xFF, 0x03, nameBytes.length, ...nameBytes);
+
+    // Program change to set instrument (optional, helps DAWs distinguish tracks)
+    // Channel 0 = Piano (program 0), Channel 1 = Strings (program 48), Channel 2 = Bass (program 32)
+    const programs = [0, 48, 32]; // Piano, Strings, Acoustic Bass
+    const channel = staff.channel;
+    pushBytes(...vlq(0), 0xC0 | channel, programs[staffIndex] || 0);
+
+    if (staffNotes.length === 0) {
+      // No notes, just end the track
+      pushBytes(...vlq(0), 0xFF, 0x2F, 0x00);
+      return new Uint8Array(events);
+    }
+
+    // Sort notes by start time
+    const sortedNotes = [...staffNotes].sort((a, b) => a.startBeat - b.startBeat || a.midi - b.midi);
+
+    // Create all note events
     const allEvents = [];
-    for (const n of sequence) {
+    for (const n of sortedNotes) {
       const onTick = beatToTicks(n.startBeat);
       const offTick = beatToTicks(n.startBeat + n.durBeats);
-      const channel = STAVES[n.staffIndex].channel;
       const velocity = 96;
       const midiVal = Math.max(0, Math.min(127, (n.midi + (n.accidental||0))|0));
 
-      allEvents.push({ tick: onTick, type: 'on', channel, midi: midiVal, velocity });
-      allEvents.push({ tick: offTick, type: 'off', channel, midi: midiVal });
+      allEvents.push({ tick: onTick, type: 'on', midi: midiVal, velocity });
+      allEvents.push({ tick: offTick, type: 'off', midi: midiVal });
     }
 
-    // Sort by tick time
-    allEvents.sort((a, b) => a.tick - b.tick);
+    // Sort by tick time, with note-offs before note-ons at same tick
+    allEvents.sort((a, b) => {
+      if (a.tick !== b.tick) return a.tick - b.tick;
+      // Note-offs before note-ons at same tick
+      if (a.type === 'off' && b.type === 'on') return -1;
+      if (a.type === 'on' && b.type === 'off') return 1;
+      return 0;
+    });
 
-    // Convert to delta times
-    cursor = 0;
+    // Convert to delta times and write events
+    let cursor = 0;
     for (const evt of allEvents) {
       const delta = Math.max(0, evt.tick - cursor);
       if (evt.type === 'on') {
-        pushBytes(...vlq(delta), 0x90 | evt.channel, evt.midi, evt.velocity);
+        pushBytes(...vlq(delta), 0x90 | channel, evt.midi, evt.velocity);
       } else {
-        pushBytes(...vlq(delta), 0x80 | evt.channel, evt.midi, 0x40);
+        pushBytes(...vlq(delta), 0x80 | channel, evt.midi, 0x40);
       }
       cursor = evt.tick;
     }
@@ -772,29 +827,43 @@
     return new Uint8Array(events);
   }
 
-  function wrapInSMFFormat(trackData) {
-    const trackLen = trackData.length;
-
+  function wrapInSMFFormat1(tracks) {
     function u32(n) { return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255]; }
     function u16(n) { return [(n>>>8)&255,n&255]; }
 
+    // Header chunk for Format 1
     const header = [
-      0x4d,0x54,0x68,0x64,
-      ...u32(6),
-      ...u16(0),
-      ...u16(1),
-      ...u16(TPQ),
+      0x4d, 0x54, 0x68, 0x64,  // "MThd"
+      ...u32(6),                // Header length
+      ...u16(1),                // Format type 1 (multiple tracks, synchronous)
+      ...u16(tracks.length),    // Number of tracks
+      ...u16(TPQ),              // Ticks per quarter note
     ];
 
-    const trackHeader = [
-      0x4d,0x54,0x72,0x6b,
-      ...u32(trackLen),
-    ];
+    // Calculate total size
+    let totalSize = header.length;
+    for (const track of tracks) {
+      totalSize += 8 + track.length; // 8 bytes for track header
+    }
 
-    const full = new Uint8Array(header.length + trackHeader.length + trackLen);
-    full.set(header, 0);
-    full.set(trackHeader, header.length);
-    full.set(trackData, header.length + trackHeader.length);
+    const full = new Uint8Array(totalSize);
+    let offset = 0;
+
+    // Write header
+    full.set(header, offset);
+    offset += header.length;
+
+    // Write each track
+    for (const trackData of tracks) {
+      const trackHeader = [
+        0x4d, 0x54, 0x72, 0x6b,  // "MTrk"
+        ...u32(trackData.length),
+      ];
+      full.set(trackHeader, offset);
+      offset += trackHeader.length;
+      full.set(trackData, offset);
+      offset += trackData.length;
+    }
 
     return full;
   }
