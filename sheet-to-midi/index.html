@@ -57,6 +57,14 @@
           <option value="erase">Erase</option>
         </select>
       </div>
+      <div class="cell" style="grid-column: span 2; min-width: 140px">
+        <label>Magic Mode</label>
+        <select id="magicMode">
+          <option value="phrase" selected>✨ Phrase (8-bar arc)</option>
+          <option value="loop">🔁 Loop (tight, repetitive)</option>
+          <option value="drift">🌊 Drift (sparse, asymmetric)</option>
+        </select>
+      </div>
       <div class="cell" style="grid-column: span 4; display:flex; gap:8px; align-items:end; justify-content:flex-end">
         <button id="randomize" class="magic">Magic</button>
         <button id="undo">Undo</button>
@@ -74,10 +82,10 @@
     </section>
 
     <section class="panel staff-wrap">
-      <svg id="staff" viewBox="0 0 2400 1400" xmlns="http://www.w3.org/2000/svg"></svg>
+      <svg id="staff" viewBox="0 0 4200 1400" xmlns="http://www.w3.org/2000/svg"></svg>
       <div class="legend">
         <b>Melody</b> (blue) + <b>Right Hand</b> (green): C4-A5 | <b>Left Hand</b> (amber): C2-E4 |
-        Time: <b>4/4</b> | Measures: <b>4</b> | MIDI: 3 channels
+        Time: <b>4/4</b> | Measures: <b>8</b> | MIDI: 3 separate tracks
       </div>
     </section>
 
