@@ -6,7 +6,7 @@
 (() => {
   /* === MUSICAL CONSTANTS === */
   const TPQ = 480;        // ticks per quarter note for MIDI
-  const MEASURES = 4;     // visible measures
+  const MEASURES = 8;     // visible measures (doubled for phrase-aware generation)
   const TIME_SIG_NUM = 4; // 4/4 time signature
   const TIME_SIG_DEN = 4;
   const TOTAL_BEATS = MEASURES * TIME_SIG_NUM;
@@ -20,7 +20,7 @@
 
   /* === SVG LAYOUT CONSTANTS === */
   const svg = document.getElementById('staff');
-  const W = 2400, H = 1400; // viewBox units (optimized for 3 staves)
+  const W = 4200, H = 1400; // viewBox units (wider for 8 measures, optimized for 3 staves)
   const PADDING = { l: 120, r: 60, t: 30, b: 30 };
   const innerW = W - PADDING.l - PADDING.r;
   const innerH = H - PADDING.t - PADDING.b;
@@ -894,89 +894,186 @@
     render();
   }
 
-  /* === RANDOM MELODY GENERATION === */
+  /* === PHRASE-AWARE MELODY GENERATION === */
+
+  // Get the current Magic mode from UI
+  function getMagicMode() {
+    const selector = document.getElementById('magicMode');
+    return selector ? selector.value : 'phrase';
+  }
+
+  // Determine which phrase section a beat falls into (for 8-bar phrases)
+  // Returns: 'establish' (bars 1-2), 'vary' (bars 3-4), 'contrast' (bars 5-6), 'resolve' (bars 7-8)
+  function getPhraseSection(beat) {
+    const bar = Math.floor(beat / 4);
+    if (bar < 2) return 'establish';
+    if (bar < 4) return 'vary';
+    if (bar < 6) return 'contrast';
+    return 'resolve';
+  }
 
   function generateRandomMelody() {
     pushHistory();
     notes = [];
     selectedId = null;
 
-    // Generate for all three staves
-    generateMelodyStaff();
-    generateRightHandStaff();
-    generateBassStaff();
+    const mode = getMagicMode();
+
+    // Generate for all three staves with mode-aware logic
+    generateMelodyStaff(mode);
+    generateRightHandStaff(mode);
+    generateBassStaff(mode);
 
     render();
   }
 
-  // Staff 0: Melody - flowing melodic line
-  function generateMelodyStaff() {
+  // Staff 0: Melody - phrase-aware melodic line
+  function generateMelodyStaff(mode) {
     const scale = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81]; // C major
-    const rhythmPatterns = [
-      [1, 1, 1, 1],
-      [2, 1, 1],
-      [1, 1, 2],
-      [0.5, 0.5, 1, 0.5, 0.5, 1],
-      [1, 0.5, 0.5, 1, 1],
-    ];
+
+    // Different rhythm patterns for different sections
+    const rhythmsBySection = {
+      establish: [[1, 1, 1, 1], [2, 1, 1], [1, 0.5, 0.5, 1, 1]],
+      vary: [[1, 1, 2], [0.5, 0.5, 1, 0.5, 0.5, 1], [1, 1, 1, 1]],
+      contrast: [[2, 2], [1, 1, 1, 1], [0.5, 0.5, 0.5, 0.5, 1, 1]],
+      resolve: [[2, 1, 1], [4], [2, 2], [1, 1, 2]]
+    };
+
+    // Mode-specific behavior
+    const modeConfig = {
+      loop: { restChance: 0.15, motifRepeat: true, densityMultiplier: 1.2 },
+      phrase: { restChance: 0.2, motifRepeat: false, densityMultiplier: 1.0 },
+      drift: { restChance: 0.4, motifRepeat: false, densityMultiplier: 0.6 }
+    };
+    const config = modeConfig[mode];
 
     let currentBeat = 0;
     let lastIndex = Math.floor(scale.length / 2);
+    let motif = []; // Store first 2 bars for potential repeat
 
     while (currentBeat < TOTAL_BEATS) {
-      const pattern = rhythmPatterns[Math.floor(Math.random() * rhythmPatterns.length)];
+      const section = getPhraseSection(currentBeat);
+      const patterns = rhythmsBySection[section];
+      const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+
+      // In loop mode, repeat the motif from bars 1-2 in bars 3-4 and 5-6
+      if (mode === 'loop' && section === 'vary' && motif.length > 0) {
+        // Replay motif with slight variation
+        for (const m of motif) {
+          if (currentBeat >= 8) break; // Only repeat in bars 3-4
+          const newMidi = m.midi + (Math.random() < 0.3 ? (Math.random() < 0.5 ? 2 : -2) : 0);
+          notes.push({
+            id: nextId++,
+            midi: Math.max(60, Math.min(81, newMidi)),
+            startBeat: currentBeat + (m.startBeat % 8),
+            durBeats: m.durBeats,
+            accidental: 0,
+            staffIndex: 0
+          });
+        }
+        currentBeat = 8;
+        continue;
+      }
 
       for (const dur of pattern) {
         if (currentBeat >= TOTAL_BEATS) break;
 
-        // 20% chance to rest
-        if (Math.random() < 0.2) {
+        // Rest chance varies by section and mode
+        let restChance = config.restChance;
+        if (section === 'resolve') restChance += 0.15; // More space at end
+        if (section === 'contrast' && mode === 'phrase') restChance += 0.1;
+
+        if (Math.random() < restChance) {
           currentBeat += dur;
           continue;
         }
 
-        // Stepwise motion
+        // Stepwise motion with occasional leaps
+        const leapChance = section === 'contrast' ? 0.3 : 0.15;
         const step = Math.random() < 0.5 ? -1 : 1;
-        const jump = Math.floor(Math.random() * 2) + 1;
+        const jump = Math.random() < leapChance ? Math.floor(Math.random() * 3) + 2 : 1;
         lastIndex = Math.max(0, Math.min(scale.length - 1, lastIndex + step * jump));
+
+        // In resolve section, tend toward root (C)
+        if (section === 'resolve' && Math.random() < 0.4) {
+          lastIndex = Math.max(0, lastIndex - 1); // Move toward lower C
+        }
 
         const midi = scale[lastIndex];
         const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
 
         if (actualDur > 0) {
-          notes.push({
+          const note = {
             id: nextId++,
             midi,
             startBeat: currentBeat,
             durBeats: actualDur,
             accidental: 0,
             staffIndex: 0
-          });
+          };
+          notes.push(note);
+
+          // Store motif from first 2 bars
+          if (currentBeat < 8) {
+            motif.push({ midi, startBeat: currentBeat, durBeats: actualDur });
+          }
         }
         currentBeat += dur;
       }
     }
   }
 
-  // Staff 1: Right Hand - chords and harmony
-  function generateRightHandStaff() {
-    const chordPatterns = [
-      [[60, 64, 67], 2],       // C major, half note
-      [[62, 65, 69], 2],       // D minor
-      [[64, 67, 71], 2],       // E minor
-      [[65, 69, 72], 2],       // F major
-      [[67, 71, 74], 2],       // G major
-      [[69, 72, 76], 2],       // A minor
-    ];
+  // Staff 1: Right Hand - staggered chord accompaniment
+  function generateRightHandStaff(mode) {
+    const chordProgressions = {
+      establish: [[60, 64, 67], [65, 69, 72]], // C, F
+      vary: [[67, 71, 74], [64, 67, 71]],      // G, Em
+      contrast: [[69, 72, 76], [62, 65, 69]],  // Am, Dm
+      resolve: [[67, 71, 74], [60, 64, 67]]    // G, C
+    };
+
+    const modeConfig = {
+      loop: { notesPerChord: 3, rhythmDensity: 'steady' },
+      phrase: { notesPerChord: 2.5, rhythmDensity: 'building' },
+      drift: { notesPerChord: 2, rhythmDensity: 'sparse' }
+    };
+    const config = modeConfig[mode];
 
     let currentBeat = 0;
 
     while (currentBeat < TOTAL_BEATS) {
-      const [chord, dur] = chordPatterns[Math.floor(Math.random() * chordPatterns.length)];
+      const section = getPhraseSection(currentBeat);
+      const chords = chordProgressions[section];
+
+      // Right hand starts sparse in 'establish', builds in 'vary'/'contrast'
+      let skipChance = 0;
+      if (mode === 'phrase') {
+        if (section === 'establish') skipChance = 0.4;
+        else if (section === 'vary') skipChance = 0.2;
+        else if (section === 'contrast') skipChance = 0.1;
+        else skipChance = 0.3; // resolve - thin out
+      } else if (mode === 'drift') {
+        skipChance = 0.5;
+      }
+
+      if (Math.random() < skipChance) {
+        currentBeat += 2;
+        continue;
+      }
+
+      const chord = chords[Math.floor(Math.random() * chords.length)];
+      const dur = mode === 'loop' ? 2 : (section === 'resolve' ? 4 : 2);
       const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
 
-      // Sometimes only play 2 notes of the chord
-      const notesToPlay = Math.random() < 0.3 ? chord.slice(0, 2) : chord;
+      // Vary number of chord tones
+      let notesToPlay;
+      if (config.notesPerChord >= 3 || (section === 'contrast' && mode === 'phrase')) {
+        notesToPlay = chord;
+      } else if (Math.random() < 0.5) {
+        notesToPlay = chord.slice(0, 2);
+      } else {
+        notesToPlay = [chord[0], chord[2]]; // Root and fifth
+      }
 
       for (const midi of notesToPlay) {
         notes.push({
@@ -992,38 +1089,67 @@
     }
   }
 
-  // Staff 2: Left Hand (Bass) - bass line with roots and fifths
-  function generateBassStaff() {
-    const bassPatterns = [
-      [48, 2],  // C2
-      [50, 2],  // D2
-      [52, 2],  // E2
-      [53, 2],  // F2
-      [55, 2],  // G2
-      [57, 2],  // A2
-    ];
+  // Staff 2: Left Hand (Bass) - anchoring bass with phrase awareness
+  function generateBassStaff(mode) {
+    // Bass roots that follow the chord progression
+    const bassProgression = {
+      establish: [48, 53],      // C, F
+      vary: [55, 52],           // G, E
+      contrast: [57, 50],       // A, D
+      resolve: [55, 48]         // G, C
+    };
+
+    const modeConfig = {
+      loop: { pattern: 'steady', octaveShift: false },
+      phrase: { pattern: 'evolving', octaveShift: true },
+      drift: { pattern: 'sparse', octaveShift: false }
+    };
+    const config = modeConfig[mode];
 
     let currentBeat = 0;
+    let lastRoot = 48;
 
     while (currentBeat < TOTAL_BEATS) {
-      const [root, dur] = bassPatterns[Math.floor(Math.random() * bassPatterns.length)];
+      const section = getPhraseSection(currentBeat);
+      const roots = bassProgression[section];
+
+      // Drift mode: occasional silence
+      if (mode === 'drift' && Math.random() < 0.35) {
+        currentBeat += 2;
+        continue;
+      }
+
+      // In phrase mode, bass switches pattern in contrast section
+      let dur = 2;
+      if (mode === 'phrase' && section === 'contrast') {
+        dur = 1; // More rhythmic in contrast
+      } else if (section === 'resolve' && mode !== 'loop') {
+        dur = 4; // Long notes to resolve
+      }
+
+      const root = roots[Math.floor(Math.random() * roots.length)];
       const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
 
-      // Root note
+      // Octave shift in bars 5-6 for phrase mode
+      let octaveShift = 0;
+      if (config.octaveShift && section === 'contrast') {
+        octaveShift = 12; // Up one octave
+      }
+
       notes.push({
         id: nextId++,
-        midi: root,
+        midi: root + octaveShift,
         startBeat: currentBeat,
         durBeats: actualDur,
         accidental: 0,
         staffIndex: 2
       });
 
-      // Sometimes add fifth (7 semitones up)
-      if (Math.random() < 0.4 && root + 7 <= 64) {
+      // Add fifth on strong beats (except in resolve or drift)
+      if (section !== 'resolve' && mode !== 'drift' && currentBeat % 4 === 0 && root + 7 + octaveShift <= 64) {
         notes.push({
           id: nextId++,
-          midi: root + 7,
+          midi: root + 7 + octaveShift,
           startBeat: currentBeat,
           durBeats: actualDur,
           accidental: 0,
@@ -1031,6 +1157,7 @@
         });
       }
 
+      lastRoot = root;
       currentBeat += dur;
     }
   }
