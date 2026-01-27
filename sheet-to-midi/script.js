@@ -951,29 +951,66 @@
     let lastIndex = Math.floor(scale.length / 2);
     let motif = []; // Store first 2 bars for potential repeat
 
-    while (currentBeat < TOTAL_BEATS) {
-      const section = getPhraseSection(currentBeat);
-      const patterns = rhythmsBySection[section];
-      const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+    // In loop mode, first generate the motif (bars 1-2), then copy it
+    if (mode === 'loop') {
+      // Generate bars 1-2 (beats 0-7)
+      while (currentBeat < 8) {
+        const patterns = rhythmsBySection.establish;
+        const pattern = patterns[Math.floor(Math.random() * patterns.length)];
 
-      // In loop mode, repeat the motif from bars 1-2 in bars 3-4 and 5-6
-      if (mode === 'loop' && section === 'vary' && motif.length > 0) {
-        // Replay motif with slight variation
+        for (const dur of pattern) {
+          if (currentBeat >= 8) break;
+
+          if (Math.random() < config.restChance) {
+            currentBeat += dur;
+            continue;
+          }
+
+          const step = Math.random() < 0.5 ? -1 : 1;
+          const jump = Math.floor(Math.random() * 2) + 1;
+          lastIndex = Math.max(0, Math.min(scale.length - 1, lastIndex + step * jump));
+
+          const midi = scale[lastIndex];
+          const actualDur = Math.min(dur, 8 - currentBeat);
+
+          if (actualDur > 0) {
+            notes.push({
+              id: nextId++,
+              midi,
+              startBeat: currentBeat,
+              durBeats: actualDur,
+              accidental: 0,
+              staffIndex: 0
+            });
+            motif.push({ midi, startBeat: currentBeat, durBeats: actualDur });
+          }
+          currentBeat += dur;
+        }
+      }
+
+      // Copy motif to bars 3-4 (beats 8-15), 5-6 (beats 16-23), 7-8 (beats 24-31)
+      for (let repeatOffset of [8, 16, 24]) {
         for (const m of motif) {
-          if (currentBeat >= 8) break; // Only repeat in bars 3-4
-          const newMidi = m.midi + (Math.random() < 0.3 ? (Math.random() < 0.5 ? 2 : -2) : 0);
+          // Slight variation chance
+          const newMidi = m.midi + (Math.random() < 0.2 ? (Math.random() < 0.5 ? 2 : -2) : 0);
           notes.push({
             id: nextId++,
             midi: Math.max(60, Math.min(81, newMidi)),
-            startBeat: currentBeat + (m.startBeat % 8),
+            startBeat: m.startBeat + repeatOffset,
             durBeats: m.durBeats,
             accidental: 0,
             staffIndex: 0
           });
         }
-        currentBeat = 8;
-        continue;
       }
+      return; // Done with loop mode
+    }
+
+    // Phrase and Drift modes - generate section by section
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const patterns = rhythmsBySection[section];
+      const pattern = patterns[Math.floor(Math.random() * patterns.length)];
 
       for (const dur of pattern) {
         if (currentBeat >= TOTAL_BEATS) break;
@@ -1003,20 +1040,14 @@
         const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
 
         if (actualDur > 0) {
-          const note = {
+          notes.push({
             id: nextId++,
             midi,
             startBeat: currentBeat,
             durBeats: actualDur,
             accidental: 0,
             staffIndex: 0
-          };
-          notes.push(note);
-
-          // Store motif from first 2 bars
-          if (currentBeat < 8) {
-            motif.push({ midi, startBeat: currentBeat, durBeats: actualDur });
-          }
+          });
         }
         currentBeat += dur;
       }
@@ -1032,13 +1063,48 @@
       resolve: [[67, 71, 74], [60, 64, 67]]    // G, C
     };
 
-    const modeConfig = {
-      loop: { notesPerChord: 3, rhythmDensity: 'steady' },
-      phrase: { notesPerChord: 2.5, rhythmDensity: 'building' },
-      drift: { notesPerChord: 2, rhythmDensity: 'sparse' }
-    };
-    const config = modeConfig[mode];
+    // Loop mode: generate 2 bars, then repeat
+    if (mode === 'loop') {
+      const motif = [];
+      let currentBeat = 0;
 
+      // Generate bars 1-2 (beats 0-7)
+      while (currentBeat < 8) {
+        const chord = chordProgressions.establish[Math.floor(Math.random() * 2)];
+        const dur = 2;
+        const actualDur = Math.min(dur, 8 - currentBeat);
+
+        for (const midi of chord) {
+          motif.push({ midi, startBeat: currentBeat, durBeats: actualDur });
+          notes.push({
+            id: nextId++,
+            midi,
+            startBeat: currentBeat,
+            durBeats: actualDur,
+            accidental: 0,
+            staffIndex: 1
+          });
+        }
+        currentBeat += dur;
+      }
+
+      // Copy to bars 3-4, 5-6, 7-8
+      for (let repeatOffset of [8, 16, 24]) {
+        for (const m of motif) {
+          notes.push({
+            id: nextId++,
+            midi: m.midi,
+            startBeat: m.startBeat + repeatOffset,
+            durBeats: m.durBeats,
+            accidental: 0,
+            staffIndex: 1
+          });
+        }
+      }
+      return;
+    }
+
+    // Phrase and Drift modes
     let currentBeat = 0;
 
     while (currentBeat < TOTAL_BEATS) {
@@ -1062,13 +1128,13 @@
       }
 
       const chord = chords[Math.floor(Math.random() * chords.length)];
-      const dur = mode === 'loop' ? 2 : (section === 'resolve' ? 4 : 2);
+      const dur = section === 'resolve' ? 4 : 2;
       const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
 
       // Vary number of chord tones
       let notesToPlay;
-      if (config.notesPerChord >= 3 || (section === 'contrast' && mode === 'phrase')) {
-        notesToPlay = chord;
+      if (section === 'contrast' && mode === 'phrase') {
+        notesToPlay = chord; // Full chord in contrast
       } else if (Math.random() < 0.5) {
         notesToPlay = chord.slice(0, 2);
       } else {
@@ -1099,15 +1165,60 @@
       resolve: [55, 48]         // G, C
     };
 
-    const modeConfig = {
-      loop: { pattern: 'steady', octaveShift: false },
-      phrase: { pattern: 'evolving', octaveShift: true },
-      drift: { pattern: 'sparse', octaveShift: false }
-    };
-    const config = modeConfig[mode];
+    // Loop mode: generate 2 bars, then repeat
+    if (mode === 'loop') {
+      const motif = [];
+      let currentBeat = 0;
 
+      // Generate bars 1-2 (beats 0-7)
+      while (currentBeat < 8) {
+        const root = bassProgression.establish[Math.floor(Math.random() * 2)];
+        const dur = 2;
+        const actualDur = Math.min(dur, 8 - currentBeat);
+
+        motif.push({ midi: root, startBeat: currentBeat, durBeats: actualDur });
+        notes.push({
+          id: nextId++,
+          midi: root,
+          startBeat: currentBeat,
+          durBeats: actualDur,
+          accidental: 0,
+          staffIndex: 2
+        });
+
+        // Add fifth on downbeats
+        if (currentBeat % 4 === 0 && root + 7 <= 64) {
+          motif.push({ midi: root + 7, startBeat: currentBeat, durBeats: actualDur });
+          notes.push({
+            id: nextId++,
+            midi: root + 7,
+            startBeat: currentBeat,
+            durBeats: actualDur,
+            accidental: 0,
+            staffIndex: 2
+          });
+        }
+        currentBeat += dur;
+      }
+
+      // Copy to bars 3-4, 5-6, 7-8
+      for (let repeatOffset of [8, 16, 24]) {
+        for (const m of motif) {
+          notes.push({
+            id: nextId++,
+            midi: m.midi,
+            startBeat: m.startBeat + repeatOffset,
+            durBeats: m.durBeats,
+            accidental: 0,
+            staffIndex: 2
+          });
+        }
+      }
+      return;
+    }
+
+    // Phrase and Drift modes
     let currentBeat = 0;
-    let lastRoot = 48;
 
     while (currentBeat < TOTAL_BEATS) {
       const section = getPhraseSection(currentBeat);
@@ -1123,7 +1234,7 @@
       let dur = 2;
       if (mode === 'phrase' && section === 'contrast') {
         dur = 1; // More rhythmic in contrast
-      } else if (section === 'resolve' && mode !== 'loop') {
+      } else if (section === 'resolve') {
         dur = 4; // Long notes to resolve
       }
 
@@ -1132,7 +1243,7 @@
 
       // Octave shift in bars 5-6 for phrase mode
       let octaveShift = 0;
-      if (config.octaveShift && section === 'contrast') {
+      if (mode === 'phrase' && section === 'contrast') {
         octaveShift = 12; // Up one octave
       }
 
@@ -1157,7 +1268,6 @@
         });
       }
 
-      lastRoot = root;
       currentBeat += dur;
     }
   }
