@@ -3,22 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Music Maker Index — Machine Music</title>
+  <title>Machine Music — Creative Sound Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;700&family=Source+Sans+Pro:wght@300;400&display=swap" rel="stylesheet" />
 </head>
 <body>
+  <div class="mist-overlay"></div>
   <div class="background"></div>
   <div class="particles" id="particles"></div>
 
   <div class="header">
     <h1>Machine Music</h1>
-    <p class="subtitle">Explore musical magic in different flavors</p>
+    <p class="subtitle">creative sound studio</p>
   </div>
 
   <div class="container">
     <div class="section">
       <div class="section-title">Choose Your Generator</div>
+      <div class="section-content">
       <div class="controls-grid">
         <div class="control-group">
           <div class="control-label">8-Bit Beat Builder</div>
@@ -33,29 +37,8 @@
           <a href="https://watcheratthethreshold.github.io/music-maker/sheet-to-midi/" target="_blank" class="pattern-button">Launch Sheet to Midi</a>
         </div>
       </div>
+      </div>
     </div>
   </div>
-
-  <script>
-    const container = document.getElementById('particles');
-    const colors = ['golden', 'purple', 'silver'];
-
-    for (let i = 0; i < 80; i++) {
-      const particle = document.createElement('div');
-      const colorType = colors[Math.floor(Math.random() * colors.length)];
-      particle.className = `particle ${colorType}`;
-
-      let size = Math.random() * 6 + 2;
-      particle.style.width = `${size}px`;
-      particle.style.height = `${size}px`;
-      particle.style.left = Math.random() * 100 + '%';
-      particle.style.animationDelay = Math.random() * 40 + 's';
-
-      const driftRange = Math.random() * 400 - 200;
-      particle.style.setProperty('--drift', driftRange + 'px');
-
-      container.appendChild(particle);
-    }
-  </script>
 </body>
 </html>
