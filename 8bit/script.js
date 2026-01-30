@@ -1175,66 +1175,215 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSequencerDisplay();
   });
 
-  // Magic Dice (was randomize)
+  // Magic Dice - Phrase-aware generation for better music
   document.getElementById('randomizePattern').addEventListener('click', () => {
-    const pattern = patterns[currentPattern];
-    const scale = scales[currentKey];
-    
-    // Randomize drums with 8-bit style probability - ALL DRUM TRACKS
-    pattern.kick = Array(32).fill(0).map((_, i) => 
-      (i % 4 === 0) ? (Math.random() > 0.2 ? 80 + Math.random() * 40 : 0) : 
-      (Math.random() > 0.85 ? 60 + Math.random() * 30 : 0)
-    );
-    
-    pattern.snare = Array(32).fill(0).map((_, i) => 
-      (i % 8 === 4) ? (Math.random() > 0.1 ? 70 + Math.random() * 40 : 0) : 
-      (Math.random() > 0.95 ? 50 + Math.random() * 30 : 0)
-    );
-    
-    pattern.hihat = Array(32).fill(0).map((_, i) => 
-      (i % 2 === 1) ? (Math.random() > 0.3 ? 50 + Math.random() * 30 : 0) : 
-      (Math.random() > 0.7 ? 40 + Math.random() * 30 : 0)
-    );
-    
-    // Add openhat randomization (less frequent, clashes with hihat)
-    pattern.openhat = Array(32).fill(0).map((_, i) => 
-      (i % 8 === 7) ? (Math.random() > 0.4 ? 60 + Math.random() * 30 : 0) : 
-      (Math.random() > 0.9 ? 50 + Math.random() * 20 : 0)
-    );
-    
-    // Add clap randomization (accent beats)
-    pattern.clap = Array(32).fill(0).map((_, i) => 
-      (i % 16 === 12) ? (Math.random() > 0.3 ? 70 + Math.random() * 35 : 0) : 
-      (Math.random() > 0.92 ? 60 + Math.random() * 25 : 0)
-    );
-    
-    // Add crash randomization (very sparse, dramatic moments)
-    pattern.crash = Array(32).fill(0).map((_, i) => 
-      (i === 0 || i === 16) ? (Math.random() > 0.7 ? 90 + Math.random() * 30 : 0) : 
-      (Math.random() > 0.95 ? 80 + Math.random() * 25 : 0)
-    );
-    
-    // Randomize melody with pentatonic-style patterns (more 8-bit)
-    pattern.bass = Array(32).fill().map((_, i) => 
-      (i % 4 === 0) ? {
-        note: scale[Math.floor(Math.random() * 5)], // First 5 notes for more traditional sound
-        velocity: 70 + Math.random() * 30
-      } : Math.random() > 0.8 ? {
-        note: scale[Math.floor(Math.random() * 5)],
-        velocity: 60 + Math.random() * 30
-      } : { note: null, velocity: 70 }
-    );
-    
-    // Add some melody notes for arpeggiator (simpler patterns)
-    pattern.lead = Array(32).fill().map((_, i) => 
-      Math.random() > 0.75 ? {
-        note: scale[Math.floor(Math.random() * 5)],
-        velocity: 60 + Math.random() * 40
-      } : { note: null, velocity: 70 }
-    );
-    
+    generatePhraseAwarePattern();
     updateSequencerDisplay();
   });
+
+  // Phrase-aware pattern generation (8-bar structure like Sheet to MIDI)
+  function generatePhraseAwarePattern() {
+    const pattern = patterns[currentPattern];
+    const scale = scales[currentKey];
+
+    // Helper: get phrase section for a step (32 steps = 8 bars of 4 steps)
+    function getPhraseSection(step) {
+      const bar = Math.floor(step / 4);
+      if (bar < 2) return 'establish';  // Bars 1-2: set up the groove
+      if (bar < 4) return 'vary';       // Bars 3-4: add variation
+      if (bar < 6) return 'contrast';   // Bars 5-6: change it up
+      return 'resolve';                  // Bars 7-8: bring it home
+    }
+
+    // Generate drums with phrase awareness
+    pattern.kick = Array(32).fill(0).map((_, i) => {
+      const section = getPhraseSection(i);
+      const onBeat = i % 4 === 0;
+      const offBeat = i % 4 === 2;
+
+      if (section === 'establish') {
+        return onBeat ? 90 + Math.random() * 25 : 0;
+      } else if (section === 'vary') {
+        if (onBeat) return 85 + Math.random() * 30;
+        if (offBeat && Math.random() > 0.7) return 65 + Math.random() * 20;
+        return 0;
+      } else if (section === 'contrast') {
+        // More syncopation
+        if (onBeat) return Math.random() > 0.2 ? 80 + Math.random() * 30 : 0;
+        if (i % 2 === 1 && Math.random() > 0.6) return 70 + Math.random() * 20;
+        return 0;
+      } else { // resolve
+        return onBeat ? 95 + Math.random() * 20 : (offBeat && i > 28 ? 75 : 0);
+      }
+    });
+
+    pattern.snare = Array(32).fill(0).map((_, i) => {
+      const section = getPhraseSection(i);
+      const isBackbeat = i % 8 === 4;
+
+      if (section === 'establish') {
+        return isBackbeat ? 80 + Math.random() * 30 : 0;
+      } else if (section === 'vary') {
+        if (isBackbeat) return 75 + Math.random() * 35;
+        if (Math.random() > 0.9) return 50 + Math.random() * 25;
+        return 0;
+      } else if (section === 'contrast') {
+        if (isBackbeat) return 85 + Math.random() * 30;
+        if (i % 4 === 3 && Math.random() > 0.7) return 60 + Math.random() * 25;
+        return 0;
+      } else { // resolve - build-up fill
+        if (i >= 28) return 70 + Math.random() * 40; // Fill at end
+        return isBackbeat ? 85 + Math.random() * 25 : 0;
+      }
+    });
+
+    pattern.hihat = Array(32).fill(0).map((_, i) => {
+      const section = getPhraseSection(i);
+
+      if (section === 'establish') {
+        return (i % 2 === 0) ? 55 + Math.random() * 25 : 0;
+      } else if (section === 'vary') {
+        return Math.random() > 0.3 ? 50 + Math.random() * 30 : 0;
+      } else if (section === 'contrast') {
+        // 16th note hihat pattern
+        return Math.random() > 0.2 ? 45 + Math.random() * 35 : 0;
+      } else { // resolve
+        return (i % 2 === 0) ? 60 + Math.random() * 25 : (Math.random() > 0.5 ? 45 + Math.random() * 20 : 0);
+      }
+    });
+
+    pattern.openhat = Array(32).fill(0).map((_, i) => {
+      const section = getPhraseSection(i);
+      if (section === 'establish') return 0;
+      if (section === 'vary' && i % 8 === 7) return Math.random() > 0.5 ? 55 + Math.random() * 25 : 0;
+      if (section === 'contrast' && i % 4 === 3) return Math.random() > 0.6 ? 60 + Math.random() * 25 : 0;
+      if (section === 'resolve' && i === 31) return 70 + Math.random() * 25;
+      return 0;
+    });
+
+    pattern.clap = Array(32).fill(0).map((_, i) => {
+      const section = getPhraseSection(i);
+      if (section === 'establish') return 0;
+      if (section === 'vary' && i % 8 === 4) return Math.random() > 0.6 ? 65 + Math.random() * 30 : 0;
+      if (section === 'contrast' && i % 4 === 2) return Math.random() > 0.7 ? 60 + Math.random() * 25 : 0;
+      if (section === 'resolve' && i >= 28 && i % 2 === 0) return 70 + Math.random() * 30;
+      return 0;
+    });
+
+    pattern.crash = Array(32).fill(0).map((_, i) => {
+      if (i === 0) return 90 + Math.random() * 30; // Intro crash
+      if (i === 16) return Math.random() > 0.4 ? 85 + Math.random() * 30 : 0; // Contrast start
+      return 0;
+    });
+
+    // Generate bass with phrase awareness - root motion
+    const chordTones = [0, 2, 4]; // I, iii, V degrees
+    let lastBassNote = 0;
+
+    pattern.bass = Array(32).fill().map((_, i) => {
+      const section = getPhraseSection(i);
+      const onBeat = i % 4 === 0;
+      const bar = Math.floor(i / 4);
+
+      if (section === 'establish') {
+        if (onBeat) {
+          // Simple root notes
+          const degree = bar % 2 === 0 ? 0 : (Math.random() > 0.5 ? 4 : 2);
+          lastBassNote = degree;
+          return { note: scale[degree], velocity: 85 + Math.random() * 25 };
+        }
+        return { note: null, velocity: 70 };
+      } else if (section === 'vary') {
+        if (onBeat) {
+          const degree = chordTones[Math.floor(Math.random() * chordTones.length)];
+          lastBassNote = degree;
+          return { note: scale[degree], velocity: 80 + Math.random() * 30 };
+        }
+        if (i % 4 === 2 && Math.random() > 0.6) {
+          return { note: scale[lastBassNote], velocity: 65 + Math.random() * 20 };
+        }
+        return { note: null, velocity: 70 };
+      } else if (section === 'contrast') {
+        // More active bass line
+        if (onBeat || (i % 2 === 0 && Math.random() > 0.4)) {
+          const step = Math.random() > 0.7 ?
+            (lastBassNote + (Math.random() > 0.5 ? 1 : -1) + 7) % 7 :
+            chordTones[Math.floor(Math.random() * chordTones.length)];
+          lastBassNote = step;
+          return { note: scale[step], velocity: 75 + Math.random() * 35 };
+        }
+        return { note: null, velocity: 70 };
+      } else { // resolve
+        if (onBeat) {
+          // Walk back to root
+          const degree = bar === 6 ? 4 : (bar === 7 && i % 4 === 0 ? 0 : 2);
+          lastBassNote = degree;
+          return { note: scale[degree], velocity: 85 + Math.random() * 25 };
+        }
+        if (i >= 28 && i % 2 === 0) {
+          return { note: scale[0], velocity: 90 }; // Strong ending
+        }
+        return { note: null, velocity: 70 };
+      }
+    });
+
+    // Generate lead melody with phrase awareness - stepwise motion
+    let lastLeadNote = Math.floor(Math.random() * 5);
+
+    pattern.lead = Array(32).fill().map((_, i) => {
+      const section = getPhraseSection(i);
+
+      if (section === 'establish') {
+        // Simple motif - few notes
+        if (i % 8 === 0 || i % 8 === 2) {
+          const step = Math.random() > 0.3 ?
+            (lastLeadNote + (Math.random() > 0.5 ? 1 : -1) + 7) % 7 :
+            Math.floor(Math.random() * 5);
+          lastLeadNote = step;
+          return { note: scale[step], velocity: 70 + Math.random() * 30 };
+        }
+        return { note: null, velocity: 70 };
+      } else if (section === 'vary') {
+        // Embellish the motif
+        if (i % 4 === 0 || (i % 4 === 2 && Math.random() > 0.4)) {
+          const step = (lastLeadNote + (Math.random() > 0.5 ? 1 : -1) + 7) % 7;
+          lastLeadNote = step;
+          return { note: scale[step], velocity: 65 + Math.random() * 35 };
+        }
+        return { note: null, velocity: 70 };
+      } else if (section === 'contrast') {
+        // New melodic idea - higher register, more active
+        if (Math.random() > 0.5) {
+          const step = (lastLeadNote + Math.floor(Math.random() * 3) - 1 + 7) % 7;
+          lastLeadNote = step;
+          return { note: scale[step], velocity: 70 + Math.random() * 35 };
+        }
+        return { note: null, velocity: 70 };
+      } else { // resolve
+        // Return to original motif feel
+        if (i % 4 === 0 || i % 4 === 2) {
+          const step = i >= 28 ? 0 : (lastLeadNote + (Math.random() > 0.5 ? 1 : -1) + 7) % 7;
+          lastLeadNote = step;
+          return { note: scale[step], velocity: 75 + Math.random() * 30 };
+        }
+        return { note: null, velocity: 70 };
+      }
+    });
+
+    // Generate pad/harmony - sustained chords on phrase changes
+    pattern.pad = Array(32).fill().map((_, i) => {
+      const section = getPhraseSection(i);
+      const bar = Math.floor(i / 4);
+
+      // Pads on first beat of each 2-bar section
+      if (i === 0) return { note: scale[0], velocity: 55 + Math.random() * 20 }; // I chord
+      if (i === 8) return { note: scale[4], velocity: 55 + Math.random() * 20 }; // V chord
+      if (i === 16) return { note: scale[3], velocity: 60 + Math.random() * 20 }; // IV chord
+      if (i === 24) return { note: scale[4], velocity: 55 + Math.random() * 20 }; // V chord (resolve)
+
+      return { note: null, velocity: 70 };
+    });
+  }
 
   // Beat Dynamics presets (was velocity)
   document.querySelectorAll('.velocity-preset').forEach(button => {
