@@ -90,15 +90,27 @@ const patterns = [
   }
 ];
 
-// MIDI note mapping for drums
+/* === MIDI EXPORT (Multi-Track Format 1 - Both Patterns) === */
+
+// MIDI drum mapping (General MIDI standard)
 const DRUM_MIDI_MAP = {
-  kick: 36,    // C1
-  snare: 38,   // D1
-  hihat: 42,   // F#1 (Closed Hi-Hat)
-  openhat: 46, // A#1 (Open Hi-Hat)
-  clap: 39,    // D#1 (Hand Clap)
-  crash: 49    // C#2 (Crash Cymbal)
+  kick: 36,    // Bass Drum 1
+  snare: 38,   // Acoustic Snare
+  hihat: 42,   // Closed Hi-Hat
+  openhat: 46, // Open Hi-Hat
+  clap: 39,    // Hand Clap
+  crash: 49    // Crash Cymbal 1
 };
+
+// Track configuration for multi-track export
+const TRACK_CONFIG = {
+  drums: { channel: 9, name: 'Drums' },
+  lead: { channel: 0, name: 'Lead Synth', octave: 4 },
+  pad: { channel: 1, name: 'Pad/Chords', octave: 3 },
+  bass: { channel: 2, name: 'Bass', octave: 2 }
+};
+
+const TPQ = 480; // Ticks per quarter note
 
 // Note to MIDI conversion
 function noteToMidi(note, octave) {
@@ -106,154 +118,218 @@ function noteToMidi(note, octave) {
   return (octave + 1) * 12 + (noteMap[note] || 0);
 }
 
-// Export to MIDI
+// Variable Length Quantity encoder
+function encodeVLQ(value) {
+  const bytes = [];
+  let val = Math.max(0, Math.floor(value) >>> 0);
+  const stack = [];
+  do {
+    stack.push(val & 0x7F);
+    val >>>= 7;
+  } while (val > 0);
+  while (stack.length) {
+    const b = stack.pop();
+    bytes.push(stack.length ? (b | 0x80) : b);
+  }
+  return bytes;
+}
+
+function u32ToBytes(n) { return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255]; }
+function u16ToBytes(n) { return [(n>>>8)&255,n&255]; }
+
+// Main MIDI export - exports both Pattern A and B with separate tracks
 function exportToMIDI() {
-  const pattern = patterns[currentPattern];
-  const bpm = Tone.Transport.bpm.value;
-  const TPQ = 480; // Ticks per quarter note
-  const stepTicks = TPQ / 4; // 16th note = 1/4 of quarter note
+  const bpm = Tone.Transport.bpm.value || 120;
+  const stepsPerPattern = patternLength;
+  const stepTicks = TPQ / 4; // 16th notes
+  const patternTicks = stepsPerPattern * stepTicks;
 
-  // Collect all events
-  const allEvents = [];
+  // Build separate tracks for each instrument
+  const tempoTrack = buildTempoTrack(bpm);
+  const drumTrack = buildDrumTrack(patternTicks, stepTicks);
+  const leadTrack = buildMelodyTrack('lead', patternTicks, stepTicks);
+  const padTrack = buildMelodyTrack('pad', patternTicks, stepTicks);
+  const bassTrack = buildMelodyTrack('bass', patternTicks, stepTicks);
 
-  // Process drum tracks
-  drumTracks.forEach(track => {
-    const midiNote = DRUM_MIDI_MAP[track];
-    pattern[track].slice(0, patternLength).forEach((velocity, step) => {
-      if (velocity > 0) {
-        const tick = step * stepTicks;
-        allEvents.push({
-          tick,
-          type: 'noteOn',
-          channel: 9, // Drum channel
-          note: midiNote,
-          velocity: Math.round(velocity)
-        });
-        allEvents.push({
-          tick: tick + stepTicks - 1,
-          type: 'noteOff',
-          channel: 9,
-          note: midiNote,
-          velocity: 0
-        });
-      }
-    });
-  });
-
-  // Process melody tracks
-  melodyTracks.forEach((track, trackIndex) => {
-    const channel = trackIndex; // Use different channels for each melodic track
-    pattern[track].slice(0, patternLength).forEach((stepData, step) => {
-      if (stepData && stepData.note) {
-        const octave = track === 'bass' ? 2 : track === 'lead' ? 4 : 3;
-        const midiNote = noteToMidi(stepData.note, octave);
-        const tick = step * stepTicks;
-
-        allEvents.push({
-          tick,
-          type: 'noteOn',
-          channel,
-          note: midiNote,
-          velocity: Math.round(stepData.velocity)
-        });
-        allEvents.push({
-          tick: tick + stepTicks - 1,
-          type: 'noteOff',
-          channel,
-          note: midiNote,
-          velocity: 0
-        });
-      }
-    });
-  });
-
-  // Sort events by tick
-  allEvents.sort((a, b) => a.tick - b.tick);
-
-  // Build MIDI file
-  const midiData = buildMIDIFile(allEvents, bpm, TPQ);
+  // Combine into Format 1 MIDI file
+  const tracks = [tempoTrack, drumTrack, leadTrack, padTrack, bassTrack];
+  const midiData = wrapInSMFFormat1(tracks);
 
   // Download
   const blob = new Blob([midiData], { type: 'audio/midi' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'edm-pattern.mid';
+  a.download = 'edm-pattern-AB.mid';
   a.click();
   URL.revokeObjectURL(url);
 }
 
-function buildMIDIFile(events, bpm, TPQ) {
+// Build tempo track (track 0 in Format 1)
+function buildTempoTrack(bpm) {
   const bytes = [];
-
-  // Helper functions
-  function writeBytes(...data) {
-    bytes.push(...data);
-  }
-
-  function writeVarLen(value) {
-    const result = [];
-    result.push(value & 0x7F);
-    while ((value >>= 7) > 0) {
-      result.unshift((value & 0x7F) | 0x80);
-    }
-    return result;
-  }
-
-  function write32(val) {
-    writeBytes((val >> 24) & 0xFF, (val >> 16) & 0xFF, (val >> 8) & 0xFF, val & 0xFF);
-  }
-
-  function write16(val) {
-    writeBytes((val >> 8) & 0xFF, val & 0xFF);
-  }
-
-  // Header chunk
-  writeBytes(0x4D, 0x54, 0x68, 0x64); // "MThd"
-  write32(6);    // Header length
-  write16(0);    // Format 0
-  write16(1);    // 1 track
-  write16(TPQ);  // Ticks per quarter note
-
-  // Track chunk
-  const trackBytes = [];
+  const microPerQuarter = Math.round(60000000 / bpm);
 
   // Tempo meta event
-  const microsecondsPerBeat = Math.round(60000000 / bpm);
-  trackBytes.push(0x00); // Delta time
-  trackBytes.push(0xFF, 0x51, 0x03); // Tempo meta event
-  trackBytes.push((microsecondsPerBeat >> 16) & 0xFF);
-  trackBytes.push((microsecondsPerBeat >> 8) & 0xFF);
-  trackBytes.push(microsecondsPerBeat & 0xFF);
+  bytes.push(...encodeVLQ(0), 0xFF, 0x51, 0x03,
+    (microPerQuarter >> 16) & 255,
+    (microPerQuarter >> 8) & 255,
+    microPerQuarter & 255);
 
-  // Add note events
-  let lastTick = 0;
-  events.forEach(event => {
-    const delta = event.tick - lastTick;
-    trackBytes.push(...writeVarLen(delta));
+  // Time signature 4/4
+  bytes.push(...encodeVLQ(0), 0xFF, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08);
 
-    if (event.type === 'noteOn') {
-      trackBytes.push(0x90 | event.channel);
-      trackBytes.push(event.note);
-      trackBytes.push(event.velocity);
-    } else {
-      trackBytes.push(0x80 | event.channel);
-      trackBytes.push(event.note);
-      trackBytes.push(0);
-    }
-
-    lastTick = event.tick;
-  });
+  // Track name
+  const name = 'Pro EDM Maker';
+  bytes.push(...encodeVLQ(0), 0xFF, 0x03, name.length, ...name.split('').map(c => c.charCodeAt(0)));
 
   // End of track
-  trackBytes.push(0x00, 0xFF, 0x2F, 0x00);
-
-  // Write track chunk
-  writeBytes(0x4D, 0x54, 0x72, 0x6B); // "MTrk"
-  write32(trackBytes.length);
-  bytes.push(...trackBytes);
+  bytes.push(...encodeVLQ(0), 0xFF, 0x2F, 0x00);
 
   return new Uint8Array(bytes);
+}
+
+// Build drum track from both patterns (A then B)
+function buildDrumTrack(patternTicks, stepTicks) {
+  const bytes = [];
+  const channel = TRACK_CONFIG.drums.channel;
+
+  // Track name
+  const name = TRACK_CONFIG.drums.name;
+  bytes.push(...encodeVLQ(0), 0xFF, 0x03, name.length, ...name.split('').map(c => c.charCodeAt(0)));
+
+  // Collect events from both patterns
+  const events = [];
+
+  [0, 1].forEach((patternIndex) => {
+    const pattern = patterns[patternIndex];
+    const offsetTicks = patternIndex * patternTicks;
+
+    drumTracks.forEach(track => {
+      const midiNote = DRUM_MIDI_MAP[track];
+      pattern[track].slice(0, patternLength).forEach((velocity, step) => {
+        if (velocity > 0) {
+          const tick = offsetTicks + step * stepTicks;
+          events.push({ tick, type: 'noteOn', note: midiNote, velocity: Math.min(127, Math.round(velocity)) });
+          events.push({ tick: tick + Math.floor(stepTicks * 0.8), type: 'noteOff', note: midiNote });
+        }
+      });
+    });
+  });
+
+  // Sort and write events
+  events.sort((a, b) => a.tick - b.tick || (a.type === 'noteOff' ? 1 : -1));
+
+  let currentTick = 0;
+  for (const event of events) {
+    const delta = Math.max(0, event.tick - currentTick);
+    currentTick = event.tick;
+
+    if (event.type === 'noteOn') {
+      bytes.push(...encodeVLQ(delta), 0x90 | channel, event.note, event.velocity);
+    } else {
+      bytes.push(...encodeVLQ(delta), 0x80 | channel, event.note, 0x40);
+    }
+  }
+
+  // End of track
+  bytes.push(...encodeVLQ(0), 0xFF, 0x2F, 0x00);
+
+  return new Uint8Array(bytes);
+}
+
+// Build melodic track from both patterns (A then B)
+function buildMelodyTrack(trackName, patternTicks, stepTicks) {
+  const bytes = [];
+  const config = TRACK_CONFIG[trackName];
+  const channel = config.channel;
+  const octave = config.octave;
+
+  // Track name
+  const name = config.name;
+  bytes.push(...encodeVLQ(0), 0xFF, 0x03, name.length, ...name.split('').map(c => c.charCodeAt(0)));
+
+  // Collect events from both patterns
+  const events = [];
+
+  [0, 1].forEach((patternIndex) => {
+    const pattern = patterns[patternIndex];
+    const offsetTicks = patternIndex * patternTicks;
+
+    pattern[trackName].slice(0, patternLength).forEach((stepData, step) => {
+      if (stepData && stepData.note) {
+        const midiNote = noteToMidi(stepData.note, octave);
+        const tick = offsetTicks + step * stepTicks;
+        const duration = Math.floor(stepTicks * 1.5);
+        const velocity = Math.min(127, Math.round(stepData.velocity));
+
+        events.push({ tick, type: 'noteOn', note: midiNote, velocity });
+        events.push({ tick: tick + duration, type: 'noteOff', note: midiNote });
+      }
+    });
+  });
+
+  // Sort and write events
+  events.sort((a, b) => a.tick - b.tick || (a.type === 'noteOff' ? 1 : -1));
+
+  let currentTick = 0;
+  for (const event of events) {
+    const delta = Math.max(0, event.tick - currentTick);
+    currentTick = event.tick;
+
+    if (event.type === 'noteOn') {
+      bytes.push(...encodeVLQ(delta), 0x90 | channel, event.note, event.velocity);
+    } else {
+      bytes.push(...encodeVLQ(delta), 0x80 | channel, event.note, 0x40);
+    }
+  }
+
+  // End of track
+  bytes.push(...encodeVLQ(0), 0xFF, 0x2F, 0x00);
+
+  return new Uint8Array(bytes);
+}
+
+// Wrap tracks in Standard MIDI File Format 1
+function wrapInSMFFormat1(tracks) {
+  const numTracks = tracks.length;
+
+  // Header chunk
+  const header = [
+    0x4D, 0x54, 0x68, 0x64, // "MThd"
+    ...u32ToBytes(6),        // Header length
+    ...u16ToBytes(1),        // Format 1 (multi-track)
+    ...u16ToBytes(numTracks),// Number of tracks
+    ...u16ToBytes(TPQ)       // Ticks per quarter note
+  ];
+
+  // Calculate total size
+  let totalSize = header.length;
+  tracks.forEach(track => {
+    totalSize += 8 + track.length; // Track header (8 bytes) + track data
+  });
+
+  // Build final file
+  const result = new Uint8Array(totalSize);
+  let offset = 0;
+
+  // Write header
+  result.set(header, offset);
+  offset += header.length;
+
+  // Write each track
+  tracks.forEach(track => {
+    // Track header
+    result.set([0x4D, 0x54, 0x72, 0x6B], offset); // "MTrk"
+    result.set(u32ToBytes(track.length), offset + 4);
+    offset += 8;
+
+    // Track data
+    result.set(track, offset);
+    offset += track.length;
+  });
+
+  return result;
 }
 
 // Audio components
