@@ -1003,44 +1003,208 @@ document.getElementById('clearPattern').addEventListener('click', () => {
   updateSequencerDisplay();
 });
 
-// Randomize pattern
+// Randomize pattern - Phrase-aware generation for professional EDM
 document.getElementById('randomizePattern').addEventListener('click', () => {
-  const pattern = patterns[currentPattern];
-  const scale = scales[currentKey];
-  
-  // Randomize drums with musical probability
-  pattern.kick = Array(32).fill(0).map((_, i) => 
-    (i % 4 === 0) ? (Math.random() > 0.3 ? 70 + Math.random() * 30 : 0) : 
-    (Math.random() > 0.8 ? 50 + Math.random() * 30 : 0)
-  );
-  
-  pattern.snare = Array(32).fill(0).map((_, i) => 
-    (i % 8 === 4) ? (Math.random() > 0.2 ? 70 + Math.random() * 30 : 0) : 
-    (Math.random() > 0.9 ? 40 + Math.random() * 30 : 0)
-  );
-  
-  pattern.hihat = Array(32).fill(0).map(() => 
-    Math.random() > 0.4 ? 40 + Math.random() * 40 : 0
-  );
-  
-  // Randomize melody with scale notes
-  pattern.bass = Array(32).fill().map(() => 
-    Math.random() > 0.7 ? {
-      note: scale[Math.floor(Math.random() * scale.length)],
-      velocity: 60 + Math.random() * 40
-    } : { note: null, velocity: 70 }
-  );
-  
-  // Add some lead notes for arpeggiator
-  pattern.lead = Array(32).fill().map(() => 
-    Math.random() > 0.8 ? {
-      note: scale[Math.floor(Math.random() * scale.length)],
-      velocity: 60 + Math.random() * 40
-    } : { note: null, velocity: 70 }
-  );
-  
+  generatePhraseAwareEDM();
   updateSequencerDisplay();
 });
+
+// Phrase-aware EDM pattern generation (8-bar structure)
+function generatePhraseAwareEDM() {
+  const pattern = patterns[currentPattern];
+  const scale = scales[currentKey];
+
+  // Helper: get phrase section for a step (32 steps = 8 bars of 4 steps)
+  function getPhraseSection(step) {
+    const bar = Math.floor(step / 4);
+    if (bar < 2) return 'buildup';    // Bars 1-2: intro/buildup
+    if (bar < 4) return 'drop';       // Bars 3-4: main drop
+    if (bar < 6) return 'breakdown';  // Bars 5-6: breakdown/contrast
+    return 'outro';                    // Bars 7-8: outro/transition
+  }
+
+  // EDM-style four-on-the-floor kick with phrase variation
+  pattern.kick = Array(32).fill(0).map((_, i) => {
+    const section = getPhraseSection(i);
+    const onBeat = i % 4 === 0;
+
+    if (section === 'buildup') {
+      // Sparse kick building up
+      if (i < 4) return onBeat ? 75 + Math.random() * 25 : 0;
+      return onBeat ? 85 + Math.random() * 25 : (i % 2 === 0 && Math.random() > 0.7 ? 60 : 0);
+    } else if (section === 'drop') {
+      // Full four-on-the-floor
+      return onBeat ? 100 + Math.random() * 20 : 0;
+    } else if (section === 'breakdown') {
+      // Half-time or sparse
+      if (i % 8 === 0) return 85 + Math.random() * 25;
+      return 0;
+    } else { // outro
+      // Building back up
+      return onBeat ? 90 + Math.random() * 25 : 0;
+    }
+  });
+
+  // Snare/clap on 2 and 4
+  pattern.snare = Array(32).fill(0).map((_, i) => {
+    const section = getPhraseSection(i);
+    const isBackbeat = i % 8 === 4;
+
+    if (section === 'buildup') {
+      if (i >= 4 && isBackbeat) return 70 + Math.random() * 30;
+      if (i >= 6 && i % 4 === 2) return Math.random() > 0.6 ? 55 + Math.random() * 20 : 0;
+      return 0;
+    } else if (section === 'drop') {
+      if (isBackbeat) return 90 + Math.random() * 30;
+      if (i % 4 === 2 && Math.random() > 0.7) return 60 + Math.random() * 25;
+      return 0;
+    } else if (section === 'breakdown') {
+      return isBackbeat ? 75 + Math.random() * 25 : 0;
+    } else { // outro - fill
+      if (i >= 28) return 70 + Math.random() * 40; // Build-up fill
+      return isBackbeat ? 85 + Math.random() * 25 : 0;
+    }
+  });
+
+  // Offbeat hihat pattern
+  pattern.hihat = Array(32).fill(0).map((_, i) => {
+    const section = getPhraseSection(i);
+    const offBeat = i % 2 === 1;
+
+    if (section === 'buildup') {
+      if (i < 4) return 0;
+      return offBeat ? 50 + Math.random() * 30 : 0;
+    } else if (section === 'drop') {
+      // Classic EDM offbeat hihat
+      return offBeat ? 60 + Math.random() * 35 : (Math.random() > 0.8 ? 40 + Math.random() * 20 : 0);
+    } else if (section === 'breakdown') {
+      return Math.random() > 0.6 ? 45 + Math.random() * 30 : 0;
+    } else { // outro
+      return offBeat ? 55 + Math.random() * 30 : 0;
+    }
+  });
+
+  // Open hihat accents
+  pattern.openhat = Array(32).fill(0).map((_, i) => {
+    const section = getPhraseSection(i);
+    if (section === 'drop' && i % 4 === 3) return Math.random() > 0.5 ? 60 + Math.random() * 30 : 0;
+    if (section === 'outro' && i === 31) return 75 + Math.random() * 25;
+    return 0;
+  });
+
+  // Clap layers
+  pattern.clap = Array(32).fill(0).map((_, i) => {
+    const section = getPhraseSection(i);
+    const isBackbeat = i % 8 === 4;
+    if (section === 'drop' && isBackbeat) return 85 + Math.random() * 30;
+    if (section === 'outro' && i >= 28) return 70 + Math.random() * 35;
+    return 0;
+  });
+
+  // Crash on transitions
+  pattern.crash = Array(32).fill(0).map((_, i) => {
+    if (i === 0) return 80 + Math.random() * 30;  // Intro
+    if (i === 8) return 100 + Math.random() * 20; // Drop!
+    if (i === 16) return 75 + Math.random() * 25; // Breakdown
+    if (i === 24) return 85 + Math.random() * 25; // Outro build
+    return 0;
+  });
+
+  // EDM Bass - pumping bassline
+  const bassNotes = [0, 0, 4, 3]; // I-I-V-IV progression common in EDM
+  let lastBassNote = 0;
+
+  pattern.bass = Array(32).fill().map((_, i) => {
+    const section = getPhraseSection(i);
+    const bar = Math.floor(i / 4);
+    const onBeat = i % 4 === 0;
+
+    if (section === 'buildup') {
+      if (i < 4) return { note: null, velocity: 70 };
+      if (onBeat) {
+        const degree = bassNotes[bar % 4];
+        lastBassNote = degree;
+        return { note: scale[degree], velocity: 75 + Math.random() * 25 };
+      }
+      return { note: null, velocity: 70 };
+    } else if (section === 'drop') {
+      // Pumping eighth note bass
+      if (i % 2 === 0) {
+        const degree = bassNotes[bar % 4];
+        lastBassNote = degree;
+        return { note: scale[degree], velocity: 90 + Math.random() * 25 };
+      }
+      return { note: null, velocity: 70 };
+    } else if (section === 'breakdown') {
+      // Sparse, sustained
+      if (onBeat && i % 8 === 0) {
+        const degree = bassNotes[bar % 4];
+        lastBassNote = degree;
+        return { note: scale[degree], velocity: 70 + Math.random() * 20 };
+      }
+      return { note: null, velocity: 70 };
+    } else { // outro
+      if (onBeat) {
+        const degree = bar === 6 ? 4 : 0; // V - I resolution
+        lastBassNote = degree;
+        return { note: scale[degree], velocity: 85 + Math.random() * 25 };
+      }
+      if (i >= 28 && i % 2 === 0) {
+        return { note: scale[0], velocity: 95 };
+      }
+      return { note: null, velocity: 70 };
+    }
+  });
+
+  // Lead melody/synth - for arpeggiator or direct play
+  let lastLeadNote = 0;
+
+  pattern.lead = Array(32).fill().map((_, i) => {
+    const section = getPhraseSection(i);
+
+    if (section === 'buildup') {
+      // Rising notes building tension
+      if (i % 4 === 0 && i >= 4) {
+        const step = Math.min(6, Math.floor(i / 4));
+        lastLeadNote = step;
+        return { note: scale[step % 7], velocity: 60 + (i * 2) };
+      }
+      return { note: null, velocity: 70 };
+    } else if (section === 'drop') {
+      // Catchy hook pattern
+      if (i % 2 === 0 || (i % 4 === 1 && Math.random() > 0.5)) {
+        const step = (lastLeadNote + (Math.random() > 0.6 ? 2 : 1)) % 7;
+        lastLeadNote = step;
+        return { note: scale[step], velocity: 75 + Math.random() * 35 };
+      }
+      return { note: null, velocity: 70 };
+    } else if (section === 'breakdown') {
+      // Melodic, emotional
+      if (i % 4 === 0 || i % 4 === 2) {
+        const step = [0, 2, 4, 2][Math.floor((i % 16) / 4)]; // Arpeggiated feel
+        lastLeadNote = step;
+        return { note: scale[step], velocity: 65 + Math.random() * 25 };
+      }
+      return { note: null, velocity: 70 };
+    } else { // outro
+      // Echo of the drop hook
+      if (i % 4 === 0) {
+        const step = i >= 28 ? 0 : lastLeadNote;
+        return { note: scale[step], velocity: 70 + Math.random() * 30 };
+      }
+      return { note: null, velocity: 70 };
+    }
+  });
+
+  // Pad - sustained atmospheric chords
+  pattern.pad = Array(32).fill().map((_, i) => {
+    if (i === 0) return { note: scale[0], velocity: 55 };  // I
+    if (i === 8) return { note: scale[0], velocity: 50 };  // Still I (drop)
+    if (i === 16) return { note: scale[3], velocity: 60 }; // IV (breakdown - emotional)
+    if (i === 24) return { note: scale[4], velocity: 55 }; // V (building)
+    return { note: null, velocity: 70 };
+  });
+}
 
 // Velocity presets
 document.querySelectorAll('.velocity-preset').forEach(button => {
