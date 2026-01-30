@@ -293,20 +293,8 @@
   }
 
   function renderPitchGuides(g, staffIndex) {
-    const staffTop = getStaffTop(staffIndex);
-    const staffBottom = getStaffBottom(staffIndex);
-    // Limit guides to just 1-2 ledger lines above/below staff (within background panel)
-    const noteAreaTop = staffTop - staffGap * 1.5;
-    const noteAreaBottom = staffBottom + staffGap * 1.5;
-
-    for (let y = noteAreaTop; y <= noteAreaBottom; y += staffGap / 2) {
-      const isOnStaffLine = (y >= staffTop && y <= staffBottom &&
-        Math.abs((y - staffTop) % staffGap) < 1);
-
-      if (!isOnStaffLine) {
-        g.push(`<line x1="${PADDING.l}" y1="${y}" x2="${W-PADDING.r}" y2="${y}" stroke="#2a3a4a" stroke-opacity=".15" stroke-width="1" stroke-dasharray="6,12" />`);
-      }
-    }
+    // Pitch guides disabled - they were causing visual artifacts
+    // The staff lines and measure grid provide enough visual reference
   }
 
   function renderTrebleClef(g, staffTop) {
@@ -387,20 +375,25 @@
     const staffBottom = getStaffBottom(staffIndex);
     const yNote = midiToStaffY(midi, staffIndex);
 
-    // Collect ledger line positions
+    // Collect ledger line positions (limit to 4 ledger lines max to prevent visual bugs)
     const ledgerYs = [];
+    const maxLedgerLines = 4;
 
     // Check for ledger lines below staff
     if (yNote > staffBottom + 2) {
-      for (let y = staffBottom + staffGap; y <= yNote + staffGap/4; y += staffGap) {
+      let count = 0;
+      for (let y = staffBottom + staffGap; y <= yNote + staffGap/4 && count < maxLedgerLines; y += staffGap) {
         ledgerYs.push(y);
+        count++;
       }
     }
 
     // Check for ledger lines above staff
     if (yNote < staffTop - 2) {
-      for (let y = staffTop - staffGap; y >= yNote - staffGap/4; y -= staffGap) {
+      let count = 0;
+      for (let y = staffTop - staffGap; y >= yNote - staffGap/4 && count < maxLedgerLines; y -= staffGap) {
         ledgerYs.push(y);
+        count++;
       }
     }
 
