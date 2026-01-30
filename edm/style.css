@@ -84,7 +84,7 @@ body {
   background-image: url('../images/mist-overlay.png');
   background-size: cover;
   background-position: center;
-  opacity: 0.4;
+  opacity: 0.8;
   mix-blend-mode: screen;
 }
 
