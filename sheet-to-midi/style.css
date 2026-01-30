@@ -271,6 +271,21 @@ header h1 {
   gap: var(--space-xs);
 }
 
+/* Button row - keep buttons inline */
+.button-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: var(--space-sm) !important;
+}
+
+.button-row button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .controls label {
   font-family: var(--font-mono);
   font-size: 10px;
