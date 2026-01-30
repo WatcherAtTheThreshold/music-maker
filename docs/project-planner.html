@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Everything - Planner</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="mist-overlay"></div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand__title">EVERYTHING - PLANNER</div>
+      <div class="brand__sub">local-first knowledge dashboard</div>
+    </div>
+
+    <div class="status">
+      <div class="status__line">
+        <span class="k">LOCAL</span>
+        <span id="localTime" class="v">--:--:--</span>
+      </div>
+      <div class="status__line">
+        <span class="k">SYSTEM</span>
+        <span id="systemState" class="v pill">BOOT</span>
+      </div>
+      <div class="status__line">
+        <span class="k">THIS WEEK</span>
+        <span id="weekCount" class="v">0</span>
+      </div>
+      <div class="status__line">
+        <span class="k">ALERTS</span>
+        <span id="alertCount" class="v">0</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT PANE: Working Space -->
+    <div class="pane pane--left">
+      
+      <!-- CAPTURE -->
+      <section class="panel" data-panel-id="capture" draggable="true">
+        <div class="panel__head panel__drag-handle">
+          <div class="panel__title">CAPTURE</div>
+          <div class="panel__meta">Enter to save • Shift+Enter newline</div>
+        </div>
+        <div class="capture">
+          <textarea id="captureInput" spellcheck="false" placeholder="Type a note… or 'monday: task' to schedule"></textarea>
+          <div class="capture__hint">
+Day prefix: <code>monday:</code> <code>tue:</code> etc. • Tags: <code>#like-this</code> • Due: <code>due:17-01-2026</code> • <code>/project</code> <code>/note</code>          </div>
+        </div>
+      </section>
+
+      <!-- THIS WEEK -->
+      <section class="panel" data-panel-id="week" draggable="true">
+        <div class="panel__head panel__drag-handle">
+          <div class="panel__title">THIS WEEK</div>
+          <div class="panel__meta">
+            <button class="panel__toggle" data-panel="week" title="Collapse">▼</button>
+            <span id="weekRange">Jan 13-19, 2026</span>
+          </div>
+        </div>
+        <div class="panel__body">
+          <div id="weekView" class="week-view"></div>
+        </div>
+      </section>
+
+      <!-- NOTES (atemporal) -->
+      <section class="panel" data-panel-id="notes" draggable="true">
+        <div class="panel__head panel__drag-handle">
+          <div class="panel__title">NOTES</div>
+          <div class="panel__meta">
+            <button class="panel__toggle" data-panel="notes" title="Collapse">▼</button>
+            <span>ideas & references</span>
+          </div>
+        </div>
+        <div class="panel__body">
+          <div id="notesList" class="list"></div>
+        </div>
+      </section>
+
+      <!-- ARCHIVE -->
+      <section class="panel" data-panel-id="archive" draggable="true">
+        <div class="panel__head panel__drag-handle">
+          <div class="panel__title">ARCHIVE</div>
+          <div class="panel__meta">
+            <button class="panel__toggle" data-panel="archive" title="Collapse">▼</button>
+            <span>completed items</span>
+          </div>
+        </div>
+        <div class="panel__body">
+          <div id="archiveList" class="list"></div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- RIGHT PANE: Awareness / Meta -->
+    <div class="pane pane--right">
+
+      <!-- SEARCH/FILTER -->
+      <section class="panel panel--compact panel--filter" data-panel-id="search" draggable="true">
+        <div class="panel__head panel__drag-handle">
+          <div class="panel__title">SEARCH</div>
+          <div class="panel__meta">
+            <button class="panel__toggle" data-panel="search" title="Collapse">▼</button>
+            <span>filter</span>
+          </div>
+        </div>
+        <div class="panel__body">
+          <div class="filter-bar">
+            <input id="filterInput" class="filter-input" placeholder="Filter by tag or text..." spellcheck="false" />
+            <button id="clearFilter" class="btn-clear" title="Clear filter">×</button>
+          </div>
+          <div id="tagChips" class="tag-chips"></div>
+        </div>
+      </section>
+
+      <!-- ALERTS -->
+      <section class="panel panel--compact" data-panel-id="alerts" draggable="true">
+        <div class="panel__head panel__drag-handle">
+          <div class="panel__title">ALERTS</div>
+          <div class="panel__meta">
+            <button class="panel__toggle" data-panel="alerts" title="Collapse">▼</button>
+            <span>computed</span>
+          </div>
+        </div>
+        <div class="panel__body">
+          <div id="alerts" class="list list--compact"></div>
+        </div>
+      </section>
+
+      <!-- PROJECTS -->
+      <section class="panel panel--compact" data-panel-id="projects" draggable="true">
+        <div class="panel__head panel__drag-handle">
+          <div class="panel__title">PROJECTS</div>
+          <div class="panel__meta">
+            <button class="panel__toggle" data-panel="projects" title="Collapse">▼</button>
+            <span>active</span>
+          </div>
+        </div>
+        <div class="panel__body">
+          <div id="projects" class="list list--compact"></div>
+        </div>
+      </section>
+
+      <!-- RECENT LOG -->
+      <section class="panel panel--compact" data-panel-id="recent" draggable="true">
+        <div class="panel__head panel__drag-handle">
+          <div class="panel__title">RECENT LOG</div>
+          <div class="panel__meta">
+            <button class="panel__toggle" data-panel="recent" title="Collapse">▼</button>
+            <span>chronological</span>
+          </div>
+        </div>
+        <div class="panel__body">
+          <div id="recentLog" class="list list--compact"></div>
+        </div>
+      </section>
+
+      <!-- MONTH CALENDAR -->
+      <section class="panel panel--compact" data-panel-id="month" draggable="true">
+        <div class="panel__head panel__drag-handle">
+          <div class="panel__title">CALENDAR</div>
+          <div class="panel__meta">
+            <button class="panel__toggle" data-panel="month" title="Collapse">▼</button>
+            <span>year view</span>
+          </div>
+        </div>
+        <div class="panel__body">
+          <div id="monthPanel" class="month-panel"></div>
+        </div>
+      </section>
+
+      <!-- TOOLS -->
+      <section class="panel panel--compact" data-panel-id="tools" draggable="true">
+        <div class="panel__head panel__drag-handle">
+          <div class="panel__title">TOOLS</div>
+          <div class="panel__meta">
+            <button class="panel__toggle" data-panel="tools" title="Collapse">▼</button>
+            <span>backup / restore</span>
+          </div>
+        </div>
+        <div class="panel__body">
+          <div class="tools">
+            <button id="btnExport" class="btn btn--sm">Export</button>
+            <button id="btnExportMd" class="btn btn--sm">Export .md</button>
+            <label class="btn btn--sm btn--ghost">
+              Import
+              <input id="importFile" type="file" accept="application/json" hidden />
+            </label>
+            <button id="btnSeed" class="btn btn--sm btn--ghost">Seed</button>
+            <button id="btnWipe" class="btn btn--sm btn--danger">Wipe</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="micro">
+      TIP: Click items to edit. Use day prefixes like "monday: task" to schedule. This is your digital journal.
+    </div>
+  </footer>
+
+  <!-- EDIT MODAL -->
+  <div id="editorModal" class="modal-overlay" hidden>
+    <div class="modal-panel">
+      <div class="panel__head">
+        <div class="panel__title">EDIT</div>
+        <div class="panel__meta">
+          <span id="editorType">ITEM</span>
+        </div>
+      </div>
+      <div class="modal-body">
+        <textarea id="editorInput" spellcheck="false" placeholder="Edit content..."></textarea>
+        <div class="modal-hint">
+          Enter to save • Shift+Enter newline • Tags: <code>#like-this</code> • Due: <code>due:17-01-2026</code>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="editorSave" class="btn btn--primary">Save</button>
+        <button id="editorDone" class="btn btn--sm">Toggle Done</button>
+        <button id="editorDelete" class="btn btn--sm btn--danger">Delete</button>
+        <button id="editorCancel" class="btn btn--sm btn--ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
