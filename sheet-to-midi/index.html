@@ -4,18 +4,30 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sheet Music → MIDI (Three-Staff Editor)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="mist-overlay"></div>
   <div class="wrap">
     <header>
-      <span class="badge"><span class="dot"></span> Three-Staff Editor</span>
-      <h1>Sheet Music → MIDI</h1>
+      <div class="brand">
+        <div class="brand__title">Sheet Music → MIDI</div>
+        <div class="brand__sub">three-staff composer</div>
+      </div>
+      <span class="badge"><span class="dot"></span> Editor Active</span>
     </header>
 
     <section class="panel" id="controlsPanel">
-      <div class="panel-header">Controls</div>
-      <div class="panel-content controls" id="controls">
+      <div class="panel__head">
+        <div class="panel__title">Controls</div>
+        <div class="panel__meta">
+          <button class="panel__toggle" title="Collapse">▼</button>
+        </div>
+      </div>
+      <div class="panel__body controls" id="controls">
       <div class="cell" style="grid-column: span 2; min-width: 120px">
         <label for="bpm">Tempo (BPM)</label>
         <input id="bpm" type="number" value="100" min="30" max="240" />
@@ -76,7 +88,7 @@
       <div class="sep"></div>
       <div class="cell" style="grid-column: 1 / -1">
         <label>Tip</label>
-        <div style="color:var(--muted)">Click on any staff to add notes. <b>Three staves</b>: Melody, Right Hand (both treble clef), and Left Hand (bass clef). Press <kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd> to switch staves. Magic generates all parts. Notes snap to subdivision. Press <kbd>Delete</kbd> to remove selected note.</div>
+        <div style="color:var(--text-muted)">Click on any staff to add notes. <b>Three staves</b>: Melody, Right Hand (both treble clef), and Left Hand (bass clef). Press <kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd> to switch staves. Magic generates all parts. Notes snap to subdivision. Press <kbd>Delete</kbd> to remove selected note.</div>
       </div>
       </div>
     </section>
@@ -89,13 +101,15 @@
       </div>
     </section>
 
-    <div class="footer">Built with plain HTML/CSS/JS. No external libraries. © You ♥</div>
+    <footer class="footer">
+      <div class="micro">Built with plain HTML/CSS/JS. No external libraries. Export to MIDI for your DAW.</div>
+    </footer>
   </div>
 
   <script src="script.js"></script>
   <script>
     // Collapsible panels
-    document.querySelectorAll('.panel-header').forEach(header => {
+    document.querySelectorAll('.panel__head, .panel-header').forEach(header => {
       header.addEventListener('click', () => {
         header.parentElement.classList.toggle('collapsed');
       });
