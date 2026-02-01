@@ -37,36 +37,11 @@
         <input id="volume" type="range" min="0" max="100" value="70" />
       </div>
       <div class="cell" style="grid-column: span 2; min-width: 140px">
-        <label>Active Staff</label>
-        <select id="activeStaff">
-          <option value="0" selected>Melody (Treble)</option>
-          <option value="1">Right Hand (Treble)</option>
-          <option value="2">Left Hand (Bass)</option>
-        </select>
-      </div>
-      <div class="cell" style="grid-column: span 2; min-width: 140px">
-        <label>Snap</label>
+        <label>Grid Resolution</label>
         <select id="snap">
-          <option value="1">Whole</option>
-          <option value="2">Half</option>
-          <option value="4" selected>Quarter</option>
-          <option value="8">Eighth</option>
-          <option value="16">Sixteenth</option>
-        </select>
-      </div>
-      <div class="cell" style="grid-column: span 2; min-width: 140px">
-        <label>Accidental</label>
-        <select id="accidental">
-          <option value="0" selected>Natural</option>
-          <option value="1">Sharp</option>
-          <option value="-1">Flat</option>
-        </select>
-      </div>
-      <div class="cell" style="grid-column: span 2; min-width: 140px">
-        <label>Tool</label>
-        <select id="tool">
-          <option value="note" selected>Place note</option>
-          <option value="erase">Erase</option>
+          <option value="4" selected>Quarter notes</option>
+          <option value="8">Eighth notes</option>
+          <option value="16">Sixteenth notes</option>
         </select>
       </div>
       <div class="cell" style="grid-column: span 2; min-width: 140px">
@@ -88,24 +63,41 @@
       <div class="sep"></div>
       <div class="cell" style="grid-column: 1 / -1">
         <label>Tip</label>
-        <div style="color:var(--text-muted)">Click on any staff to add notes. <b>Three staves</b>: Melody, Right Hand (both treble clef), and Left Hand (bass clef). Press <kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd> to switch staves. Magic generates all parts. Notes snap to subdivision. Press <kbd>Delete</kbd> to remove selected note.</div>
+        <div style="color:var(--text-muted)"><b>Click</b> grid cells to toggle notes on/off. <b>Right-click</b> to erase. <b>Three staves</b>: Melody (blue), Right Hand (green), Left Hand (amber). <b>Magic</b> generates all parts. Scroll horizontally to see all 8 measures.</div>
       </div>
       </div>
     </section>
 
-    <section class="panel">
+    <!-- Melody Staff -->
+    <section class="panel staff-section" data-staff="0">
       <div class="panel__head">
-        <div class="panel__title">Score</div>
-        <div class="panel__meta">
-          <button class="panel__toggle" title="Collapse">▼</button>
-        </div>
+        <div class="panel__title">Melody</div>
+        <div class="panel__meta">C4 - A5 (Treble)</div>
       </div>
-      <div class="panel__body staff-wrap">
-        <svg id="staff" viewBox="0 0 4200 1400" xmlns="http://www.w3.org/2000/svg"></svg>
-        <div class="legend">
-          <b>Melody</b> (blue) + <b>Right Hand</b> (green): C4-A5 | <b>Left Hand</b> (amber): C2-E4 |
-          Time: <b>4/4</b> | Measures: <b>8</b> | MIDI: 3 separate tracks
-        </div>
+      <div class="panel__body">
+        <div class="pitch-grid" id="melodyGrid"></div>
+      </div>
+    </section>
+
+    <!-- Right Hand Staff -->
+    <section class="panel staff-section" data-staff="1">
+      <div class="panel__head">
+        <div class="panel__title">Right Hand</div>
+        <div class="panel__meta">C4 - A5 (Treble)</div>
+      </div>
+      <div class="panel__body">
+        <div class="pitch-grid" id="rightHandGrid"></div>
+      </div>
+    </section>
+
+    <!-- Left Hand Staff -->
+    <section class="panel staff-section" data-staff="2">
+      <div class="panel__head">
+        <div class="panel__title">Left Hand</div>
+        <div class="panel__meta">C2 - E4 (Bass)</div>
+      </div>
+      <div class="panel__body">
+        <div class="pitch-grid" id="leftHandGrid"></div>
       </div>
     </section>
 
