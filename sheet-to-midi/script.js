@@ -297,7 +297,7 @@
     }
 
     if (playheadInterval) {
-      clearInterval(playheadInterval);
+      cancelAnimationFrame(playheadInterval);
       playheadInterval = null;
     }
 
@@ -322,9 +322,7 @@
 
   function startPlayheadAnimation(totalDuration) {
     const stepsCount = getStepsCount();
-    const stepDuration = (totalDuration * 1000) / stepsCount;
-
-    let currentStep = 0;
+    let lastStep = -1;
 
     // Clear previous playhead
     document.querySelectorAll('.step-cell.current').forEach(cell => {
@@ -332,30 +330,43 @@
     });
 
     function updatePlayhead() {
-      if (!isPlaying) return;
+      if (!isPlaying) {
+        document.querySelectorAll('.step-cell.current').forEach(cell => {
+          cell.classList.remove('current');
+        });
+        return;
+      }
 
-      // Clear previous
-      document.querySelectorAll('.step-cell.current').forEach(cell => {
-        cell.classList.remove('current');
-      });
+      // Calculate current step based on actual audio time
+      const elapsed = audio.currentTime - playbackStartTime;
+      const progress = elapsed / totalDuration;
 
-      // Highlight current column
-      document.querySelectorAll(`.step-cell[data-step="${currentStep}"]`).forEach(cell => {
-        cell.classList.add('current');
-      });
+      // Handle looping - wrap progress to 0-1 range
+      const wrappedProgress = isLooping ? (progress % 1) : Math.min(progress, 0.9999);
+      const currentStep = Math.floor(wrappedProgress * stepsCount);
 
-      currentStep++;
-      if (currentStep >= stepsCount) {
-        currentStep = 0;
-        if (!isLooping) {
-          clearInterval(playheadInterval);
-          playheadInterval = null;
-        }
+      // Only update DOM if step changed
+      if (currentStep !== lastStep && currentStep >= 0 && currentStep < stepsCount) {
+        // Clear previous
+        document.querySelectorAll('.step-cell.current').forEach(cell => {
+          cell.classList.remove('current');
+        });
+
+        // Highlight current column
+        document.querySelectorAll(`.step-cell[data-step="${currentStep}"]`).forEach(cell => {
+          cell.classList.add('current');
+        });
+
+        lastStep = currentStep;
+      }
+
+      // Continue animation
+      if (isPlaying) {
+        playheadInterval = requestAnimationFrame(updatePlayhead);
       }
     }
 
-    updatePlayhead(); // Immediate first update
-    playheadInterval = setInterval(updatePlayhead, stepDuration);
+    playheadInterval = requestAnimationFrame(updatePlayhead);
   }
 
   function toggleLoop() {
