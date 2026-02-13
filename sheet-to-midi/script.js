@@ -608,9 +608,15 @@
 
     const mode = getMagicMode();
 
-    generateMelodyStaff(mode);
-    generateRightHandStaff(mode);
-    generateBassStaff(mode);
+    if (mode === 'fantasy') {
+      generateFantasyMelody();
+      generateFantasyRightHand();
+      generateFantasyBass();
+    } else {
+      generateMelodyStaff(mode);
+      generateRightHandStaff(mode);
+      generateBassStaff(mode);
+    }
 
     updateAllGrids();
   }
@@ -925,6 +931,195 @@
           accidental: 0,
           staffIndex: 2
         });
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  /* === FANTASY / MEDIEVAL GENERATION === */
+
+  // D Dorian scale — the quintessential medieval mode
+  // Bright minor feel with the characteristic raised 6th (B natural)
+  const DORIAN_MELODY = [62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81];
+  // Bass register Dorian
+  const DORIAN_BASS = [38, 40, 41, 43, 45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64];
+
+  function generateFantasyMelody() {
+    // Medieval melody: stepwise motion, occasional ornamental turns,
+    // longer note values, phrase arcs that cadence on D or A
+
+    const rhythmsBySection = {
+      establish: [[2, 2], [2, 1, 1], [1, 1, 2]],
+      vary:      [[1, 1, 1, 1], [2, 1, 0.5, 0.5], [1, 0.5, 0.5, 1, 1]],
+      contrast:  [[1, 1, 1, 1], [0.5, 0.5, 1, 1, 1], [2, 1, 1]],
+      resolve:   [[2, 2], [4], [1, 1, 2]]
+    };
+
+    let currentBeat = 0;
+    let lastIndex = 3; // Start around G4 — middle of the Dorian range
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const patterns = rhythmsBySection[section];
+      const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+
+      for (const dur of pattern) {
+        if (currentBeat >= TOTAL_BEATS) break;
+
+        // Medieval melodies breathe — rest between phrases
+        let restChance = 0.15;
+        if (section === 'resolve') restChance = 0.25;
+        if (section === 'contrast') restChance = 0.1;
+
+        if (Math.random() < restChance) {
+          currentBeat += dur;
+          continue;
+        }
+
+        // Mostly stepwise with occasional 3rds (very medieval)
+        const leapChance = section === 'contrast' ? 0.25 : 0.1;
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        const jump = Math.random() < leapChance ? 2 : 1;
+        lastIndex = Math.max(0, Math.min(DORIAN_MELODY.length - 1, lastIndex + dir * jump));
+
+        // Resolve sections pull toward D (index 0) or A (index 4)
+        if (section === 'resolve' && Math.random() < 0.5) {
+          const target = Math.random() < 0.6 ? 0 : 4;
+          lastIndex += lastIndex > target ? -1 : (lastIndex < target ? 1 : 0);
+        }
+
+        // Contrast section ventures higher — more tension
+        if (section === 'contrast' && Math.random() < 0.3) {
+          lastIndex = Math.min(DORIAN_MELODY.length - 1, lastIndex + 1);
+        }
+
+        const midi = DORIAN_MELODY[lastIndex];
+        const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+        if (actualDur > 0) {
+          notes.push({
+            id: nextId++, midi,
+            startBeat: currentBeat, durBeats: actualDur,
+            accidental: 0, staffIndex: 0
+          });
+        }
+        currentBeat += dur;
+      }
+    }
+  }
+
+  function generateFantasyRightHand() {
+    // Medieval harmony: open fifths, fourths, and octaves (no thirds!)
+    // Sparse harp-like accompaniment with occasional parallel motion
+
+    // Open-voiced chords built on Dorian scale degrees
+    const chordsBySection = {
+      // [root, fifth] or [root, fourth, fifth] — no thirds
+      establish: [[62, 69], [67, 74]],           // D5, G5 (i, IV)
+      vary:      [[69, 76], [65, 72]],           // A5, F5 (v, III)
+      contrast:  [[64, 71], [67, 74]],           // E5, G5 (ii, IV)
+      resolve:   [[69, 76], [62, 69]]            // A5, D5 (v, i)
+    };
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const chords = chordsBySection[section];
+
+      // Harp-like: sometimes skip beats for a sparse, airy feel
+      let skipChance = 0.2;
+      if (section === 'establish') skipChance = 0.35;
+      if (section === 'contrast') skipChance = 0.1;
+      if (section === 'resolve') skipChance = 0.3;
+
+      if (Math.random() < skipChance) {
+        currentBeat += 2;
+        continue;
+      }
+
+      const chord = chords[Math.floor(Math.random() * chords.length)];
+      const dur = section === 'resolve' ? 4 : 2;
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+      // Sometimes arpeggiate (stagger the notes by half a beat)
+      const arpeggiate = Math.random() < 0.3;
+
+      for (let i = 0; i < chord.length; i++) {
+        const offset = arpeggiate ? i * 0.5 : 0;
+        const noteBeat = currentBeat + offset;
+        const noteDur = Math.max(0.5, actualDur - offset);
+
+        if (noteBeat < TOTAL_BEATS && noteDur > 0) {
+          notes.push({
+            id: nextId++, midi: chord[i],
+            startBeat: noteBeat, durBeats: noteDur,
+            accidental: 0, staffIndex: 1
+          });
+        }
+      }
+
+      // Occasionally add an octave doubling for fullness
+      if (Math.random() < 0.2 && chord[0] - 12 >= 60) {
+        notes.push({
+          id: nextId++, midi: chord[0] - 12,
+          startBeat: currentBeat, durBeats: actualDur,
+          accidental: 0, staffIndex: 1
+        });
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  function generateFantasyBass() {
+    // Medieval bass: sustained drone on D, with occasional movement to A (the 5th)
+    // Think hurdy-gurdy or bagpipe drone
+
+    // D2=38, A2=45, D3=50, A3=57
+    const droneRoots = {
+      establish: [38, 50],    // D2, D3 — pure drone
+      vary:      [38, 45],    // D2, A2 — root and fifth
+      contrast:  [45, 43],    // A2, G2 — tension
+      resolve:   [45, 38]     // A2→D2 — cadence home
+    };
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const roots = droneRoots[section];
+
+      // Bass in medieval music is very sustained
+      let dur;
+      if (section === 'establish' || section === 'resolve') {
+        dur = 4; // Whole bar drones
+      } else if (section === 'contrast') {
+        dur = 2; // Slightly more motion
+      } else {
+        dur = Math.random() < 0.5 ? 4 : 2;
+      }
+
+      const root = roots[Math.floor(Math.random() * roots.length)];
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+      notes.push({
+        id: nextId++, midi: root,
+        startBeat: currentBeat, durBeats: actualDur,
+        accidental: 0, staffIndex: 2
+      });
+
+      // Add a fifth above for a fuller drone (on strong beats)
+      if (currentBeat % 4 === 0 && Math.random() < 0.6) {
+        const fifth = root + 7;
+        if (fifth <= 64) {
+          notes.push({
+            id: nextId++, midi: fifth,
+            startBeat: currentBeat, durBeats: actualDur,
+            accidental: 0, staffIndex: 2
+          });
+        }
       }
 
       currentBeat += dur;
