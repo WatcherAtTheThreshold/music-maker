@@ -612,6 +612,10 @@
       generateFantasyMelody();
       generateFantasyRightHand();
       generateFantasyBass();
+    } else if (mode === 'lofi') {
+      generateLofiMelody();
+      generateLofiRightHand();
+      generateLofiBass();
     } else {
       generateMelodyStaff(mode);
       generateRightHandStaff(mode);
@@ -1122,6 +1126,239 @@
         }
       }
 
+      currentBeat += dur;
+    }
+  }
+
+  /* === LO-FI / NUJABES GENERATION === */
+
+  // A minor pentatonic + jazz color tones for that lo-fi feel
+  // Core: A C D E G | Color: Bb, F, B (blue notes, 7ths)
+  const LOFI_MELODY = [60, 62, 64, 65, 67, 69, 70, 71, 72, 74, 76, 77, 79, 81];
+  //                    C4  D4  E4  F4  G4  A4  Bb4 B4  C5  D5  E5  F5  G5  A5
+
+  function generateLofiMelody() {
+    // Nujabes-style melody: pentatonic core with chromatic passing tones,
+    // syncopated rhythms that land on off-beats, breathing space
+
+    // Pentatonic "home" indices (A minor pentatonic within the scale)
+    // A=5, C=0/8, D=1/9, E=2/10, G=4/12
+    const pentatonicIndices = [0, 1, 2, 4, 5, 8, 9, 10, 12];
+
+    const rhythmsBySection = {
+      // Syncopated — lots of off-beat entries (0.5 = eighth note offsets)
+      establish: [[0.5, 1, 0.5, 1, 1], [1, 0.5, 0.5, 1, 1], [1.5, 0.5, 1, 1]],
+      vary:      [[0.5, 0.5, 1, 0.5, 0.5, 1], [0.5, 1.5, 1, 1], [1, 0.5, 0.5, 0.5, 0.5, 1]],
+      contrast:  [[0.5, 0.5, 0.5, 0.5, 1, 1], [1, 1, 0.5, 0.5, 1], [2, 0.5, 0.5, 1]],
+      resolve:   [[1.5, 0.5, 2], [1, 1, 2], [2, 2]]
+    };
+
+    let currentBeat = 0;
+    let lastIndex = 5; // Start on A4
+    let lastWasPentatonic = true;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const patterns = rhythmsBySection[section];
+      const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+
+      for (const dur of pattern) {
+        if (currentBeat >= TOTAL_BEATS) break;
+
+        // Lo-fi breathes — generous rests, especially on downbeats
+        let restChance = 0.2;
+        if (section === 'resolve') restChance = 0.3;
+        // Rest more on strong beats for that laid-back feel
+        if (currentBeat % 2 === 0 && Math.random() < 0.15) restChance += 0.15;
+
+        if (Math.random() < restChance) {
+          currentBeat += dur;
+          continue;
+        }
+
+        // Movement: mostly stepwise, occasionally leap to a pentatonic tone
+        if (lastWasPentatonic && Math.random() < 0.3) {
+          // Chromatic approach: step to a neighbor tone
+          const dir = Math.random() < 0.5 ? -1 : 1;
+          lastIndex = Math.max(0, Math.min(LOFI_MELODY.length - 1, lastIndex + dir));
+          lastWasPentatonic = false;
+        } else {
+          // Jump to a pentatonic tone (the core sound)
+          const targetPool = pentatonicIndices.filter(i => Math.abs(i - lastIndex) <= 3);
+          if (targetPool.length > 0) {
+            lastIndex = targetPool[Math.floor(Math.random() * targetPool.length)];
+          } else {
+            const dir = Math.random() < 0.5 ? -1 : 1;
+            lastIndex = Math.max(0, Math.min(LOFI_MELODY.length - 1, lastIndex + dir * 2));
+          }
+          lastWasPentatonic = true;
+        }
+
+        // Resolve pulls toward A (index 5) or C (index 0/8)
+        if (section === 'resolve' && Math.random() < 0.5) {
+          const target = Math.random() < 0.6 ? 5 : 8;
+          lastIndex += lastIndex > target ? -1 : (lastIndex < target ? 1 : 0);
+        }
+
+        const midi = LOFI_MELODY[lastIndex];
+        const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+        if (actualDur > 0) {
+          notes.push({
+            id: nextId++, midi,
+            startBeat: currentBeat, durBeats: actualDur,
+            accidental: 0, staffIndex: 0
+          });
+        }
+        currentBeat += dur;
+      }
+    }
+  }
+
+  function generateLofiRightHand() {
+    // Jazz chords: minor 7ths, major 7ths, dominant 9ths
+    // Voiced in the treble range with 3rds and 7ths — the Nujabes harmonic palette
+
+    const chordsBySection = {
+      // Am7, Dm7, Fmaj7, Em7 — classic lo-fi progression
+      establish: [
+        [69, 72, 76, 79],   // Am7: A C E G
+        [62, 65, 69, 72]    // Dm7: D F A C
+      ],
+      vary: [
+        [65, 69, 72, 76],   // Fmaj7: F A C E
+        [67, 71, 74, 77]    // G7: G B D F
+      ],
+      contrast: [
+        [64, 67, 71, 74],   // Em7: E G B D
+        [60, 64, 67, 71]    // Cmaj7: C E G B
+      ],
+      resolve: [
+        [62, 65, 69, 72],   // Dm7: D F A C
+        [69, 72, 76, 79]    // Am7: A C E G
+      ]
+    };
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const chords = chordsBySection[section];
+
+      // Lo-fi chords are laid-back — skip some hits
+      let skipChance = 0.15;
+      if (section === 'establish') skipChance = 0.25;
+      if (section === 'resolve') skipChance = 0.2;
+
+      if (Math.random() < skipChance) {
+        currentBeat += 2;
+        continue;
+      }
+
+      const chord = chords[Math.floor(Math.random() * chords.length)];
+      const dur = section === 'resolve' ? 4 : 2;
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+      // Vary voicing: sometimes drop a note for a thinner texture
+      let voicing;
+      const roll = Math.random();
+      if (roll < 0.4) {
+        voicing = chord; // Full 4-note chord
+      } else if (roll < 0.7) {
+        voicing = [chord[0], chord[2], chord[3]]; // Root, 5th, 7th (drop 3rd sometimes for open sound)
+      } else {
+        voicing = [chord[0], chord[1], chord[3]]; // Root, 3rd, 7th (shell voicing — very jazz)
+      }
+
+      // Syncopated chord placement — sometimes start half a beat early
+      const offset = Math.random() < 0.3 ? -0.5 : 0;
+      const chordBeat = Math.max(0, currentBeat + offset);
+
+      for (const midi of voicing) {
+        if (chordBeat >= 0 && chordBeat < TOTAL_BEATS) {
+          notes.push({
+            id: nextId++, midi,
+            startBeat: chordBeat, durBeats: Math.min(actualDur, TOTAL_BEATS - chordBeat),
+            accidental: 0, staffIndex: 1
+          });
+        }
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  function generateLofiBass() {
+    // Lo-fi bass: mellow walking lines with chromatic approach tones
+    // Sits in a low pocket, emphasis on roots and 5ths with passing tones
+
+    // A minor walking bass notes (MIDI values in bass range)
+    // A2=45, B2=47, C3=48, D3=50, E3=52, F3=53, G3=55, A3=57
+    const bassRoots = {
+      establish: [45, 50],    // A2, D3
+      vary:      [53, 55],    // F3, G3
+      contrast:  [52, 48],    // E3, C3
+      resolve:   [50, 45]     // D3, A2
+    };
+
+    let currentBeat = 0;
+    let lastRoot = 45; // Start on A2
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const roots = bassRoots[section];
+
+      // Bass in lo-fi is steady but not mechanical
+      let dur;
+      if (section === 'resolve') {
+        dur = 2; // Slower to wind down
+      } else {
+        // Mix of quarter and half notes for walking feel
+        dur = Math.random() < 0.6 ? 1 : 2;
+      }
+
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+      if (actualDur <= 0) break;
+
+      // Choose note: root, or walk toward the next root
+      let midi;
+      const targetRoot = roots[Math.floor(Math.random() * roots.length)];
+
+      const roll = Math.random();
+      if (roll < 0.5) {
+        // Play the root
+        midi = targetRoot;
+      } else if (roll < 0.75) {
+        // Play the fifth above root
+        midi = targetRoot + 7;
+      } else {
+        // Chromatic approach: one semitone above or below the target
+        const approach = Math.random() < 0.5 ? -1 : 1;
+        midi = targetRoot + approach;
+      }
+
+      // Keep bass in range
+      midi = Math.max(36, Math.min(64, midi));
+
+      notes.push({
+        id: nextId++, midi,
+        startBeat: currentBeat, durBeats: actualDur,
+        accidental: 0, staffIndex: 2
+      });
+
+      // Occasional octave ghost note for rhythmic bounce
+      if (dur === 1 && Math.random() < 0.25 && midi + 12 <= 64) {
+        const ghostBeat = currentBeat + 0.5;
+        if (ghostBeat < TOTAL_BEATS) {
+          notes.push({
+            id: nextId++, midi: midi + 12,
+            startBeat: ghostBeat, durBeats: 0.5,
+            accidental: 0, staffIndex: 2
+          });
+        }
+      }
+
+      lastRoot = midi;
       currentBeat += dur;
     }
   }
