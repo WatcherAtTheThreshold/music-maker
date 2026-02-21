@@ -616,6 +616,14 @@
       generateLofiMelody();
       generateLofiRightHand();
       generateLofiBass();
+    } else if (mode === 'adventure') {
+      generateAdventureMelody();
+      generateAdventureRightHand();
+      generateAdventureBass();
+    } else if (mode === 'boss') {
+      generateBossMelody();
+      generateBossRightHand();
+      generateBossBass();
     } else {
       generateMelodyStaff(mode);
       generateRightHandStaff(mode);
@@ -1359,6 +1367,373 @@
       }
 
       lastRoot = midi;
+      currentBeat += dur;
+    }
+  }
+
+  /* === ADVENTURE / HEROIC GENERATION === */
+
+  // E natural minor — the classic action/adventure game key
+  // E4=64, F#4=66, G4=67, A4=69, B4=71, C5=72, D5=74, E5=76, F#5=78, G5=79, A5=81
+  const ADVENTURE_SCALE = [64, 66, 67, 69, 71, 72, 74, 76, 78, 79, 81];
+
+  function generateAdventureMelody() {
+    // Heroic melodic lines: rising phrases, bold leaps of 4ths and 5ths,
+    // driving dotted rhythms. Think Zelda overworld, Chrono Trigger.
+
+    const rhythmsBySection = {
+      // Establish: clear, rhythmically punchy opening phrases
+      establish: [[1, 1, 1, 1], [1.5, 0.5, 1, 1], [2, 1, 1]],
+      // Vary: more motion, building energy
+      vary:      [[0.5, 0.5, 1, 0.5, 0.5, 1], [1, 0.5, 0.5, 1, 1], [1.5, 0.5, 0.5, 0.5, 1]],
+      // Contrast: peak energy, fast runs or big leaps
+      contrast:  [[0.5, 0.5, 0.5, 0.5, 1, 1], [1, 0.5, 0.5, 0.5, 0.5, 1], [0.5, 0.5, 1, 1, 1]],
+      // Resolve: triumphant landing, longer notes
+      resolve:   [[2, 1, 1], [4], [1.5, 0.5, 2]]
+    };
+
+    let currentBeat = 0;
+    let lastIndex = 4; // Start on B4 — the 5th, a strong heroic tone
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const patterns = rhythmsBySection[section];
+      const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+
+      for (const dur of pattern) {
+        if (currentBeat >= TOTAL_BEATS) break;
+
+        // Adventure melodies keep moving — fewer rests than other modes
+        let restChance = 0.1;
+        if (section === 'resolve') restChance = 0.2;
+
+        if (Math.random() < restChance) {
+          currentBeat += dur;
+          continue;
+        }
+
+        // Heroic = bold leaps. 4ths and 5ths are characteristically heroic
+        const leapChance = section === 'contrast' ? 0.45 : 0.25;
+        const dir = Math.random() < 0.55 ? 1 : -1; // Bias upward for energy
+        let jump;
+        if (Math.random() < leapChance) {
+          jump = Math.random() < 0.5 ? 3 : 4; // 4th or 5th in scale steps
+        } else {
+          jump = 1; // Stepwise
+        }
+        lastIndex = Math.max(0, Math.min(ADVENTURE_SCALE.length - 1, lastIndex + dir * jump));
+
+        // Contrast climbs high — tension before resolve
+        if (section === 'contrast') {
+          lastIndex = Math.min(ADVENTURE_SCALE.length - 1, lastIndex + (Math.random() < 0.35 ? 1 : 0));
+        }
+
+        // Resolve: fall back toward E (index 0) — the triumphant home
+        if (section === 'resolve' && Math.random() < 0.5) {
+          lastIndex = Math.max(0, lastIndex - 1);
+        }
+
+        const midi = ADVENTURE_SCALE[lastIndex];
+        const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+        if (actualDur > 0) {
+          notes.push({
+            id: nextId++, midi,
+            startBeat: currentBeat, durBeats: actualDur,
+            accidental: 0, staffIndex: 0
+          });
+        }
+        currentBeat += dur;
+      }
+    }
+  }
+
+  function generateAdventureRightHand() {
+    // Heroic chord hits: Em, G, Am, D, Bm, C — the classic minor adventure progression
+    // Punchy, on-beat chord stabs with occasional held voicings
+
+    const chordsBySection = {
+      establish: [[64, 67, 71], [67, 71, 74]],   // Em, G
+      vary:      [[69, 72, 76], [67, 71, 74]],   // Am, G
+      contrast:  [[71, 74, 78], [60, 64, 67]],   // Bm, C
+      resolve:   [[64, 67, 71], [67, 71, 74]]    // Em, G — home
+    };
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const chords = chordsBySection[section];
+
+      // Adventure chords drive hard — not many skips
+      const skipChance = section === 'establish' ? 0.15 : 0.05;
+      if (Math.random() < skipChance) {
+        currentBeat += 2;
+        continue;
+      }
+
+      const chord = chords[Math.floor(Math.random() * chords.length)];
+
+      // Mix of stabs (short) and held chords for rhythmic variety
+      const dur = section === 'resolve' ? 4 :
+                  (Math.random() < 0.6 ? 2 : 1);
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+      // Syncopation on off-beats for forward momentum
+      const offset = (section !== 'resolve' && Math.random() < 0.25) ? 0.5 : 0;
+      const chordBeat = currentBeat + offset;
+
+      for (const midi of chord) {
+        if (chordBeat < TOTAL_BEATS) {
+          notes.push({
+            id: nextId++, midi,
+            startBeat: chordBeat,
+            durBeats: Math.min(actualDur, TOTAL_BEATS - chordBeat),
+            accidental: 0, staffIndex: 1
+          });
+        }
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  function generateAdventureBass() {
+    // Driving bass in E minor — quarter note pulse with occasional leaps.
+    // Mirrors the chord roots with energy. Like a galloping horse.
+
+    // E2=40, B2=47, A2=45, G2=43, D3=50, C3=48, F#2=42
+    const bassRoots = {
+      establish: [40, 43],   // E2, G2
+      vary:      [45, 43],   // A2, G2
+      contrast:  [47, 48],   // B2, C3
+      resolve:   [47, 40]    // B2 → E2 (classic V-i cadence)
+    };
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const roots = bassRoots[section];
+
+      // Bass drives in quarters — very few half notes
+      const dur = Math.random() < 0.75 ? 1 : 2;
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+      if (actualDur <= 0) break;
+
+      const root = roots[Math.floor(Math.random() * roots.length)];
+
+      notes.push({
+        id: nextId++, midi: root,
+        startBeat: currentBeat, durBeats: actualDur,
+        accidental: 0, staffIndex: 2
+      });
+
+      // Add power-fifth on strong downbeats
+      if (currentBeat % 2 === 0 && Math.random() < 0.5) {
+        const fifth = root + 7;
+        if (fifth <= 64) {
+          notes.push({
+            id: nextId++, midi: fifth,
+            startBeat: currentBeat, durBeats: actualDur,
+            accidental: 0, staffIndex: 2
+          });
+        }
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  /* === BOSS BATTLE GENERATION === */
+
+  // D Phrygian Dominant — the "devil's scale", dark and menacing
+  // Characteristic: flat 2nd (Eb) creates extreme tension against the root
+  // D4=62, Eb4=63, F4=65, G4=67, Ab4=68, Bb4=70, C5=72, D5=74, Eb5=75, F5=77, G5=79, Ab5=80
+  const BOSS_SCALE = [62, 63, 65, 67, 68, 70, 72, 74, 75, 77, 79, 80];
+  //                  D4  Eb4 F4  G4  Ab4 Bb4 C5  D5  Eb5 F5  G5  Ab5
+
+  function generateBossMelody() {
+    // Menacing, relentless. Chromatic descents, tritone leaps (D→Ab = the "devil's interval"),
+    // sudden silences followed by aggressive bursts.
+
+    const rhythmsBySection = {
+      // Establish: heavy, pounding, announces the threat
+      establish: [[1, 1, 1, 1], [1.5, 0.5, 1, 1], [2, 0.5, 0.5, 1]],
+      // Vary: faster, more frantic
+      vary:      [[0.5, 0.5, 1, 0.5, 0.5, 1], [0.5, 0.5, 0.5, 0.5, 1, 1], [1, 0.5, 0.5, 1, 1]],
+      // Contrast: peak chaos — rapid chromatic runs
+      contrast:  [[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1], [0.5, 0.5, 0.5, 1, 0.5, 1], [1, 0.5, 0.5, 0.5, 0.5, 1]],
+      // Resolve: doesn't resolve peacefully — ends on a threat
+      resolve:   [[2, 1, 1], [1.5, 0.5, 1, 1], [2, 0.5, 0.5, 1]]
+    };
+
+    let currentBeat = 0;
+    let lastIndex = 0; // Start on D4
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const patterns = rhythmsBySection[section];
+      const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+
+      for (const dur of pattern) {
+        if (currentBeat >= TOTAL_BEATS) break;
+
+        // Boss music is relentless — minimal rests
+        let restChance = 0.08;
+        if (section === 'establish') restChance = 0.12; // Dramatic pauses
+
+        if (Math.random() < restChance) {
+          currentBeat += dur;
+          continue;
+        }
+
+        // Chromatic and tritone-heavy movement
+        const roll = Math.random();
+        if (roll < 0.2) {
+          // Leap to tritone (index 4 = Ab is tritone above D root)
+          lastIndex = 4;
+        } else if (roll < 0.35) {
+          // Chromatic step (very boss-like)
+          const dir = Math.random() < 0.5 ? 1 : -1;
+          lastIndex = Math.max(0, Math.min(BOSS_SCALE.length - 1, lastIndex + dir));
+        } else if (roll < 0.6) {
+          // Scale step
+          const dir = Math.random() < 0.45 ? 1 : -1; // Slight descending bias
+          lastIndex = Math.max(0, Math.min(BOSS_SCALE.length - 1, lastIndex + dir));
+        } else {
+          // Larger leap for drama
+          const dir = Math.random() < 0.5 ? 1 : -1;
+          const jump = Math.floor(Math.random() * 3) + 2;
+          lastIndex = Math.max(0, Math.min(BOSS_SCALE.length - 1, lastIndex + dir * jump));
+        }
+
+        // Contrast section: drive upward relentlessly
+        if (section === 'contrast' && Math.random() < 0.4) {
+          lastIndex = Math.min(BOSS_SCALE.length - 1, lastIndex + 1);
+        }
+
+        const midi = BOSS_SCALE[lastIndex];
+        const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+        if (actualDur > 0) {
+          notes.push({
+            id: nextId++, midi,
+            startBeat: currentBeat, durBeats: actualDur,
+            accidental: 0, staffIndex: 0
+          });
+        }
+        currentBeat += dur;
+      }
+    }
+  }
+
+  function generateBossRightHand() {
+    // Dissonant, crushing chords. Tritones, diminished 7ths, flat-2 clusters.
+    // No redemption — every chord is a threat.
+
+    const chordsBySection = {
+      // Diminished and tritone voicings — all menace
+      establish: [
+        [62, 65, 68],        // Ddim: D F Ab (stacked minor 3rds)
+        [62, 68]             // Tritone: D Ab (maximum tension)
+      ],
+      vary: [
+        [62, 65, 68, 71],    // Ddim7: D F Ab B (fully diminished 7th)
+        [63, 67, 70]         // Ebmaj: Eb G Bb (the menacing flat-2 chord)
+      ],
+      contrast: [
+        [65, 68, 72],        // F Ab C (half-dim feel)
+        [62, 65, 68, 71]     // Ddim7 again — maximum darkness
+      ],
+      resolve: [
+        [63, 68],            // Eb Ab — tritone over flat-2, no resolution
+        [62, 65, 68]         // Back to Ddim — no escape
+      ]
+    };
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const chords = chordsBySection[section];
+
+      // Boss chords hit hard and often
+      const skipChance = 0.08;
+      if (Math.random() < skipChance) {
+        currentBeat += 1;
+        continue;
+      }
+
+      const chord = chords[Math.floor(Math.random() * chords.length)];
+
+      // Short stabs of dissonance for percussive impact
+      const dur = section === 'contrast'
+        ? (Math.random() < 0.6 ? 1 : 0.5)
+        : (Math.random() < 0.5 ? 2 : 1);
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+      for (const midi of chord) {
+        notes.push({
+          id: nextId++, midi,
+          startBeat: currentBeat, durBeats: actualDur,
+          accidental: 0, staffIndex: 1
+        });
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  function generateBossBass() {
+    // Low, grinding bass. Pedal on D with chromatic stalking motion,
+    // occasional burst up to Ab (the tritone) for maximum dread.
+
+    // D2=38, Eb2=39, F2=41, G2=43, Ab2=44, Bb2=46, C3=48, D3=50
+    const bassNotes = {
+      establish: [38, 39],    // D2, Eb2 — pedal with chromatic grind
+      vary:      [38, 44],    // D2, Ab2 — root and tritone
+      contrast:  [44, 46],    // Ab2, Bb2 — away from root, maximum tension
+      resolve:   [39, 38]     // Eb2 → D2 — chromatic "resolve" that still feels wrong
+    };
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const pool = bassNotes[section];
+
+      // Boss bass: longer grinding notes, occasional fast chromatic
+      let dur;
+      if (section === 'contrast') {
+        dur = Math.random() < 0.6 ? 1 : 2; // More motion in contrast
+      } else {
+        dur = Math.random() < 0.4 ? 2 : (Math.random() < 0.5 ? 1 : 4); // Big sustained slabs
+      }
+
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+      if (actualDur <= 0) break;
+
+      const root = pool[Math.floor(Math.random() * pool.length)];
+
+      notes.push({
+        id: nextId++, midi: root,
+        startBeat: currentBeat, durBeats: actualDur,
+        accidental: 0, staffIndex: 2
+      });
+
+      // Add tritone stab on strong beats for extra dread
+      if (currentBeat % 4 === 0 && Math.random() < 0.45) {
+        const tritone = root + 6; // Augmented 4th = tritone
+        if (tritone <= 64) {
+          notes.push({
+            id: nextId++, midi: tritone,
+            startBeat: currentBeat, durBeats: Math.min(actualDur, 1),
+            accidental: 0, staffIndex: 2
+          });
+        }
+      }
+
       currentBeat += dur;
     }
   }
