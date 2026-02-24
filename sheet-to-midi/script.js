@@ -624,6 +624,8 @@
       generateBossMelody();
       generateBossRightHand();
       generateBossBass();
+    } else if (mode === 'mystic') {
+      generateMystic();
     } else {
       generateMelodyStaff(mode);
       generateRightHandStaff(mode);
@@ -1731,6 +1733,59 @@
             startBeat: currentBeat, durBeats: Math.min(actualDur, 1),
             accidental: 0, staffIndex: 2
           });
+        }
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  /* --- Mystic --- */
+  function generateMystic() {
+    // Sparse, breathing dark-ambient feel — slow melody drives right-hand fifths and bass drones
+    // D Dorian/Phrygian hybrid: root movement and tritone stabs create ritual tension
+    const melodyScale = [62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81];
+    let currentBeat = 0;
+    let lastIndex = 3;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const durOptions = section === 'resolve' ? [4, 6] : [2, 3, 4];
+      const dur = durOptions[Math.floor(Math.random() * durOptions.length)];
+
+      // 35% chance of silence — lots of breathing space
+      if (Math.random() < 0.35) {
+        currentBeat += dur;
+        continue;
+      }
+
+      const dir = Math.random() < 0.5 ? -1 : 1;
+      const jump = Math.random() < 0.25 ? 2 : 1;
+      lastIndex = Math.max(0, Math.min(melodyScale.length - 1, lastIndex + dir * jump));
+
+      const midi = melodyScale[lastIndex];
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+      // Melody (staff 0)
+      notes.push({ id: nextId++, midi, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 0 });
+
+      // Right hand: open fifth above melody — swell slightly shorter for trailing resonance
+      if (Math.random() < 0.6) {
+        const fifth = midi + 7;
+        if (fifth <= STAVES[1].maxMidi) {
+          notes.push({ id: nextId++, midi: fifth, startBeat: currentBeat, durBeats: Math.max(1, actualDur - 0.5), accidental: 0, staffIndex: 1 });
+        }
+      }
+
+      // Bass: deep sustained root, two octaves below melody
+      const bassRoot = Math.max(STAVES[2].minMidi, midi - 24);
+      notes.push({ id: nextId++, midi: bassRoot, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 2 });
+
+      // Occasional tritone stab in bass for dread
+      if (Math.random() < 0.3) {
+        const tritone = bassRoot + 6;
+        if (tritone <= STAVES[2].maxMidi && currentBeat + 1 < TOTAL_BEATS) {
+          notes.push({ id: nextId++, midi: tritone, startBeat: currentBeat + 1, durBeats: 2, accidental: 0, staffIndex: 2 });
         }
       }
 
