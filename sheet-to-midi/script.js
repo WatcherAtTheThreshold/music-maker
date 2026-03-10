@@ -59,6 +59,38 @@
     return Math.round((beat * snap) / 4);
   }
 
+  /* === KEY TRANSPOSITION UTILITIES === */
+
+  function getKeyOffset() {
+    const el = document.getElementById('keyShift');
+    return el ? parseInt(el.value, 10) : 0;
+  }
+
+  // Shift every note in a flat array by n semitones
+  function transposeArr(arr, n) {
+    return n === 0 ? arr : arr.map(v => v + n);
+  }
+
+  // Shift every note in a { section: [[midi, ...], ...] } chord map
+  function transposeChords(sections, n) {
+    if (n === 0) return sections;
+    const out = {};
+    for (const [key, chords] of Object.entries(sections)) {
+      out[key] = chords.map(chord => chord.map(v => v + n));
+    }
+    return out;
+  }
+
+  // Shift every note in a { section: [midi, ...] } roots map
+  function transposeRoots(sections, n) {
+    if (n === 0) return sections;
+    const out = {};
+    for (const [key, roots] of Object.entries(sections)) {
+      out[key] = roots.map(v => v + n);
+    }
+    return out;
+  }
+
   /* === HISTORY MANAGEMENT === */
 
   function pushHistory() {
@@ -640,7 +672,7 @@
   }
 
   function generateMelodyStaff(mode) {
-    const scale = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81];
+    const scale = transposeArr([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81], getKeyOffset());
 
     const rhythmsBySection = {
       establish: [[1, 1, 1, 1], [2, 1, 1], [1, 0.5, 0.5, 1, 1]],
@@ -756,12 +788,12 @@
   }
 
   function generateRightHandStaff(mode) {
-    const chordProgressions = {
+    const chordProgressions = transposeChords({
       establish: [[60, 64, 67], [65, 69, 72]],
       vary: [[67, 71, 74], [64, 67, 71]],
       contrast: [[69, 72, 76], [62, 65, 69]],
       resolve: [[67, 71, 74], [60, 64, 67]]
-    };
+    }, getKeyOffset());
 
     if (mode === 'loop') {
       const motif = [];
@@ -850,12 +882,12 @@
   }
 
   function generateBassStaff(mode) {
-    const bassProgression = {
+    const bassProgression = transposeRoots({
       establish: [48, 53],
       vary: [55, 52],
       contrast: [57, 50],
       resolve: [55, 48]
-    };
+    }, getKeyOffset());
 
     if (mode === 'loop') {
       const motif = [];
@@ -957,13 +989,9 @@
 
   /* === FANTASY / MEDIEVAL GENERATION === */
 
-  // D Dorian scale — the quintessential medieval mode
-  // Bright minor feel with the characteristic raised 6th (B natural)
-  const DORIAN_MELODY = [62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81];
-  // Bass register Dorian
-  const DORIAN_BASS = [38, 40, 41, 43, 45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64];
-
   function generateFantasyMelody() {
+    // D Dorian scale — the quintessential medieval mode
+    const DORIAN_MELODY = transposeArr([62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81], getKeyOffset());
     // Medieval melody: stepwise motion, occasional ornamental turns,
     // longer note values, phrase arcs that cadence on D or A
 
@@ -1032,13 +1060,13 @@
     // Sparse harp-like accompaniment with occasional parallel motion
 
     // Open-voiced chords built on Dorian scale degrees
-    const chordsBySection = {
+    const chordsBySection = transposeChords({
       // [root, fifth] or [root, fourth, fifth] — no thirds
       establish: [[62, 69], [67, 74]],           // D5, G5 (i, IV)
       vary:      [[69, 76], [65, 72]],           // A5, F5 (v, III)
       contrast:  [[64, 71], [67, 74]],           // E5, G5 (ii, IV)
       resolve:   [[69, 76], [62, 69]]            // A5, D5 (v, i)
-    };
+    }, getKeyOffset());
 
     let currentBeat = 0;
 
@@ -1096,12 +1124,12 @@
     // Think hurdy-gurdy or bagpipe drone
 
     // D2=38, A2=45, D3=50, A3=57
-    const droneRoots = {
+    const droneRoots = transposeRoots({
       establish: [38, 50],    // D2, D3 — pure drone
       vary:      [38, 45],    // D2, A2 — root and fifth
       contrast:  [45, 43],    // A2, G2 — tension
       resolve:   [45, 38]     // A2→D2 — cadence home
-    };
+    }, getKeyOffset());
 
     let currentBeat = 0;
 
@@ -1146,12 +1174,11 @@
 
   /* === LO-FI / NUJABES GENERATION === */
 
-  // A minor pentatonic + jazz color tones for that lo-fi feel
-  // Core: A C D E G | Color: Bb, F, B (blue notes, 7ths)
-  const LOFI_MELODY = [60, 62, 64, 65, 67, 69, 70, 71, 72, 74, 76, 77, 79, 81];
-  //                    C4  D4  E4  F4  G4  A4  Bb4 B4  C5  D5  E5  F5  G5  A5
-
   function generateLofiMelody() {
+    // A minor pentatonic + jazz color tones for that lo-fi feel
+    // Core: A C D E G | Color: Bb, F, B (blue notes, 7ths)
+    const LOFI_MELODY = transposeArr([60, 62, 64, 65, 67, 69, 70, 71, 72, 74, 76, 77, 79, 81], getKeyOffset());
+    //                                C4  D4  E4  F4  G4  A4  Bb4 B4  C5  D5  E5  F5  G5  A5
     // Nujabes-style melody: pentatonic core with chromatic passing tones,
     // syncopated rhythms that land on off-beats, breathing space
 
@@ -1233,7 +1260,7 @@
     // Jazz chords: minor 7ths, major 7ths, dominant 9ths
     // Voiced in the treble range with 3rds and 7ths — the Nujabes harmonic palette
 
-    const chordsBySection = {
+    const chordsBySection = transposeChords({
       // Am7, Dm7, Fmaj7, Em7 — classic lo-fi progression
       establish: [
         [69, 72, 76, 79],   // Am7: A C E G
@@ -1251,7 +1278,7 @@
         [62, 65, 69, 72],   // Dm7: D F A C
         [69, 72, 76, 79]    // Am7: A C E G
       ]
-    };
+    }, getKeyOffset());
 
     let currentBeat = 0;
 
@@ -1308,12 +1335,12 @@
 
     // A minor walking bass notes (MIDI values in bass range)
     // A2=45, B2=47, C3=48, D3=50, E3=52, F3=53, G3=55, A3=57
-    const bassRoots = {
+    const bassRoots = transposeRoots({
       establish: [45, 50],    // A2, D3
       vary:      [53, 55],    // F3, G3
       contrast:  [52, 48],    // E3, C3
       resolve:   [50, 45]     // D3, A2
-    };
+    }, getKeyOffset());
 
     let currentBeat = 0;
     let lastRoot = 45; // Start on A2
@@ -1379,11 +1406,10 @@
 
   /* === ADVENTURE / HEROIC GENERATION === */
 
-  // E natural minor — the classic action/adventure game key
-  // E4=64, F#4=66, G4=67, A4=69, B4=71, C5=72, D5=74, E5=76, F#5=78, G5=79, A5=81
-  const ADVENTURE_SCALE = [64, 66, 67, 69, 71, 72, 74, 76, 78, 79, 81];
-
   function generateAdventureMelody() {
+    // E natural minor — the classic action/adventure game key
+    // E4=64, F#4=66, G4=67, A4=69, B4=71, C5=72, D5=74, E5=76, F#5=78, G5=79, A5=81
+    const ADVENTURE_SCALE = transposeArr([64, 66, 67, 69, 71, 72, 74, 76, 78, 79, 81], getKeyOffset());
     // Heroic melodic lines: rising phrases, bold leaps of 4ths and 5ths,
     // driving dotted rhythms. Think Zelda overworld, Chrono Trigger.
 
@@ -1458,12 +1484,12 @@
     // Heroic chord hits: Em, G, Am, D, Bm, C — the classic minor adventure progression
     // Punchy, on-beat chord stabs with occasional held voicings
 
-    const chordsBySection = {
+    const chordsBySection = transposeChords({
       establish: [[64, 67, 71], [67, 71, 74]],   // Em, G
       vary:      [[69, 72, 76], [67, 71, 74]],   // Am, G
       contrast:  [[71, 74, 78], [60, 64, 67]],   // Bm, C
       resolve:   [[64, 67, 71], [67, 71, 74]]    // Em, G — home
-    };
+    }, getKeyOffset());
 
     let currentBeat = 0;
 
@@ -1509,12 +1535,12 @@
     // Mirrors the chord roots with energy. Like a galloping horse.
 
     // E2=40, B2=47, A2=45, G2=43, D3=50, C3=48, F#2=42
-    const bassRoots = {
+    const bassRoots = transposeRoots({
       establish: [40, 43],   // E2, G2
       vary:      [45, 43],   // A2, G2
       contrast:  [47, 48],   // B2, C3
       resolve:   [47, 40]    // B2 → E2 (classic V-i cadence)
-    };
+    }, getKeyOffset());
 
     let currentBeat = 0;
 
@@ -1553,13 +1579,12 @@
 
   /* === BOSS BATTLE GENERATION === */
 
-  // D Phrygian Dominant — the "devil's scale", dark and menacing
-  // Characteristic: flat 2nd (Eb) creates extreme tension against the root
-  // D4=62, Eb4=63, F4=65, G4=67, Ab4=68, Bb4=70, C5=72, D5=74, Eb5=75, F5=77, G5=79, Ab5=80
-  const BOSS_SCALE = [62, 63, 65, 67, 68, 70, 72, 74, 75, 77, 79, 80];
-  //                  D4  Eb4 F4  G4  Ab4 Bb4 C5  D5  Eb5 F5  G5  Ab5
-
   function generateBossMelody() {
+    // D Phrygian Dominant — the "devil's scale", dark and menacing
+    // Characteristic: flat 2nd (Eb) creates extreme tension against the root
+    // D4=62, Eb4=63, F4=65, G4=67, Ab4=68, Bb4=70, C5=72, D5=74, Eb5=75, F5=77, G5=79, Ab5=80
+    const BOSS_SCALE = transposeArr([62, 63, 65, 67, 68, 70, 72, 74, 75, 77, 79, 80], getKeyOffset());
+    //                               D4  Eb4 F4  G4  Ab4 Bb4 C5  D5  Eb5 F5  G5  Ab5
     // Menacing, relentless. Chromatic descents, tritone leaps (D→Ab = the "devil's interval"),
     // sudden silences followed by aggressive bursts.
 
@@ -1638,7 +1663,7 @@
     // Dissonant, crushing chords. Tritones, diminished 7ths, flat-2 clusters.
     // No redemption — every chord is a threat.
 
-    const chordsBySection = {
+    const chordsBySection = transposeChords({
       // Diminished and tritone voicings — all menace
       establish: [
         [62, 65, 68],        // Ddim: D F Ab (stacked minor 3rds)
@@ -1656,7 +1681,7 @@
         [63, 68],            // Eb Ab — tritone over flat-2, no resolution
         [62, 65, 68]         // Back to Ddim — no escape
       ]
-    };
+    }, getKeyOffset());
 
     let currentBeat = 0;
 
@@ -1696,12 +1721,12 @@
     // occasional burst up to Ab (the tritone) for maximum dread.
 
     // D2=38, Eb2=39, F2=41, G2=43, Ab2=44, Bb2=46, C3=48, D3=50
-    const bassNotes = {
+    const bassNotes = transposeRoots({
       establish: [38, 39],    // D2, Eb2 — pedal with chromatic grind
       vary:      [38, 44],    // D2, Ab2 — root and tritone
       contrast:  [44, 46],    // Ab2, Bb2 — away from root, maximum tension
       resolve:   [39, 38]     // Eb2 → D2 — chromatic "resolve" that still feels wrong
-    };
+    }, getKeyOffset());
 
     let currentBeat = 0;
 
@@ -1748,7 +1773,7 @@
   function generateMystic() {
     // Sparse, breathing dark-ambient feel — slow melody drives right-hand fifths and bass drones
     // D Dorian/Phrygian hybrid: root movement and tritone stabs create ritual tension
-    const melodyScale = [62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81];
+    const melodyScale = transposeArr([62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81], getKeyOffset());
     let currentBeat = 0;
     let lastIndex = 3;
 
@@ -1799,11 +1824,10 @@
 
   /* === VICTORY / FANFARE GENERATION === */
 
-  // C major — the brightest, most triumphant key
-  // C4=60 D4=62 E4=64 F4=65 G4=67 A4=69 B4=71 C5=72 D5=74 E5=76 F5=77 G5=79 A5=81
-  const VICTORY_SCALE = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81];
-
   function generateVictoryMelody() {
+    // C major — the brightest, most triumphant key
+    // C4=60 D4=62 E4=64 F4=65 G4=67 A4=69 B4=71 C5=72 D5=74 E5=76 F5=77 G5=79 A5=81
+    const VICTORY_SCALE = transposeArr([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81], getKeyOffset());
     // Fanfare-style: dotted rhythms, rising phrases, strong upward bias.
     // Think JRPG victory theme — punchy, celebratory, resolves cleanly to C.
 
@@ -1877,12 +1901,12 @@
     // Bright major chord stabs — I, IV, V, vi.
     // Punchy hits with occasional arpeggiated flourishes.
 
-    const chordsBySection = {
+    const chordsBySection = transposeChords({
       establish: [[60, 64, 67], [67, 71, 74]],   // C, G — I V opening
       vary:      [[65, 69, 72], [67, 71, 74]],   // F, G — IV V build
       contrast:  [[69, 72, 76], [62, 65, 69]],   // Am, Dm — brief emotion
       resolve:   [[67, 71, 74], [60, 64, 67]]    // G→C — V-I cadence home
-    };
+    }, getKeyOffset());
 
     let currentBeat = 0;
 
@@ -1926,12 +1950,12 @@
     // Bouncy, energetic bass. Strong root hits on beat 1, walking/leaping motion.
     // C2=36 G2=43 F2=41 A2=45 D3=50 E3=52 B2=47
 
-    const bassRoots = {
+    const bassRoots = transposeRoots({
       establish: [36, 43],   // C2, G2 — I V
       vary:      [41, 43],   // F2, G2 — IV V
       contrast:  [45, 50],   // A2, D3 — vi ii
       resolve:   [43, 36]    // G2 → C2 — V-I
-    };
+    }, getKeyOffset());
 
     let currentBeat = 0;
 
