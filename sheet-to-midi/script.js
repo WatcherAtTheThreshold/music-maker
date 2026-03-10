@@ -626,6 +626,10 @@
       generateBossBass();
     } else if (mode === 'mystic') {
       generateMystic();
+    } else if (mode === 'victory') {
+      generateVictoryMelody();
+      generateVictoryRightHand();
+      generateVictoryBass();
     } else {
       generateMelodyStaff(mode);
       generateRightHandStaff(mode);
@@ -1786,6 +1790,177 @@
         const tritone = bassRoot + 6;
         if (tritone <= STAVES[2].maxMidi && currentBeat + 1 < TOTAL_BEATS) {
           notes.push({ id: nextId++, midi: tritone, startBeat: currentBeat + 1, durBeats: 2, accidental: 0, staffIndex: 2 });
+        }
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  /* === VICTORY / FANFARE GENERATION === */
+
+  // C major — the brightest, most triumphant key
+  // C4=60 D4=62 E4=64 F4=65 G4=67 A4=69 B4=71 C5=72 D5=74 E5=76 F5=77 G5=79 A5=81
+  const VICTORY_SCALE = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81];
+
+  function generateVictoryMelody() {
+    // Fanfare-style: dotted rhythms, rising phrases, strong upward bias.
+    // Think JRPG victory theme — punchy, celebratory, resolves cleanly to C.
+
+    const rhythmsBySection = {
+      // Establish: signature fanfare figure — dotted quarter + eighth patterns
+      establish: [[1.5, 0.5, 1, 1], [1, 1, 1, 1], [0.5, 0.5, 1, 0.5, 0.5, 1]],
+      // Vary: more motion, rising runs
+      vary:      [[0.5, 0.5, 1, 0.5, 0.5, 1], [1.5, 0.5, 0.5, 0.5, 1], [1, 0.5, 0.5, 1, 1]],
+      // Contrast: peak energy — short bursts and big leaps
+      contrast:  [[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1], [0.5, 0.5, 1, 1, 1], [1, 0.5, 0.5, 0.5, 0.5, 1]],
+      // Resolve: triumphant landing — long held tones
+      resolve:   [[2, 1, 1], [4], [1.5, 0.5, 2]]
+    };
+
+    let currentBeat = 0;
+    let lastIndex = 4; // Start on G4 — the 5th, a classic fanfare opener
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const patterns = rhythmsBySection[section];
+      const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+
+      for (const dur of pattern) {
+        if (currentBeat >= TOTAL_BEATS) break;
+
+        // Victory melodies keep moving — very few rests
+        let restChance = 0.08;
+        if (section === 'resolve') restChance = 0.15;
+
+        if (Math.random() < restChance) {
+          currentBeat += dur;
+          continue;
+        }
+
+        // Upward bias — rising phrases feel triumphant
+        const dir = Math.random() < 0.65 ? 1 : -1;
+        // Fanfare leaps: 4ths and 5ths are characteristically heroic/bright
+        const leapChance = section === 'contrast' ? 0.4 : 0.2;
+        const jump = Math.random() < leapChance
+          ? (Math.random() < 0.5 ? 3 : 4) // 4th or 5th in scale steps
+          : 1;
+        lastIndex = Math.max(0, Math.min(VICTORY_SCALE.length - 1, lastIndex + dir * jump));
+
+        // Contrast climbs to the top of the range
+        if (section === 'contrast' && Math.random() < 0.3) {
+          lastIndex = Math.min(VICTORY_SCALE.length - 1, lastIndex + 1);
+        }
+
+        // Resolve falls home to C (index 0 = C4, index 7 = C5)
+        if (section === 'resolve' && Math.random() < 0.6) {
+          const target = lastIndex >= 7 ? 7 : 0;
+          lastIndex += lastIndex > target ? -1 : (lastIndex < target ? 1 : 0);
+        }
+
+        const midi = VICTORY_SCALE[lastIndex];
+        const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+        if (actualDur > 0) {
+          notes.push({
+            id: nextId++, midi,
+            startBeat: currentBeat, durBeats: actualDur,
+            accidental: 0, staffIndex: 0
+          });
+        }
+        currentBeat += dur;
+      }
+    }
+  }
+
+  function generateVictoryRightHand() {
+    // Bright major chord stabs — I, IV, V, vi.
+    // Punchy hits with occasional arpeggiated flourishes.
+
+    const chordsBySection = {
+      establish: [[60, 64, 67], [67, 71, 74]],   // C, G — I V opening
+      vary:      [[65, 69, 72], [67, 71, 74]],   // F, G — IV V build
+      contrast:  [[69, 72, 76], [62, 65, 69]],   // Am, Dm — brief emotion
+      resolve:   [[67, 71, 74], [60, 64, 67]]    // G→C — V-I cadence home
+    };
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const chords = chordsBySection[section];
+
+      // Victory chords hit confidently — minimal skips
+      const skipChance = section === 'establish' ? 0.1 : 0.05;
+      if (Math.random() < skipChance) {
+        currentBeat += 2;
+        continue;
+      }
+
+      const chord = chords[Math.floor(Math.random() * chords.length)];
+      const dur = section === 'resolve' ? 4 : (Math.random() < 0.6 ? 2 : 1);
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+      // Occasionally arpeggiate for a bright harp/keyboard flourish
+      const arpeggiate = Math.random() < 0.25;
+
+      for (let i = 0; i < chord.length; i++) {
+        const offset = arpeggiate ? i * 0.25 : 0;
+        const noteBeat = currentBeat + offset;
+        const noteDur = Math.max(0.5, actualDur - offset);
+
+        if (noteBeat < TOTAL_BEATS && noteDur > 0) {
+          notes.push({
+            id: nextId++, midi: chord[i],
+            startBeat: noteBeat, durBeats: noteDur,
+            accidental: 0, staffIndex: 1
+          });
+        }
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  function generateVictoryBass() {
+    // Bouncy, energetic bass. Strong root hits on beat 1, walking/leaping motion.
+    // C2=36 G2=43 F2=41 A2=45 D3=50 E3=52 B2=47
+
+    const bassRoots = {
+      establish: [36, 43],   // C2, G2 — I V
+      vary:      [41, 43],   // F2, G2 — IV V
+      contrast:  [45, 50],   // A2, D3 — vi ii
+      resolve:   [43, 36]    // G2 → C2 — V-I
+    };
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const roots = bassRoots[section];
+
+      // Bouncy quarter-note drive — faster than adventure, lighter than boss
+      const dur = Math.random() < 0.7 ? 1 : 2;
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+      if (actualDur <= 0) break;
+
+      const root = roots[Math.floor(Math.random() * roots.length)];
+
+      notes.push({
+        id: nextId++, midi: root,
+        startBeat: currentBeat, durBeats: actualDur,
+        accidental: 0, staffIndex: 2
+      });
+
+      // Add octave on strong downbeats for a full, bright sound
+      if (currentBeat % 2 === 0 && Math.random() < 0.45) {
+        const octave = root + 12;
+        if (octave <= 64) {
+          notes.push({
+            id: nextId++, midi: octave,
+            startBeat: currentBeat, durBeats: actualDur,
+            accidental: 0, staffIndex: 2
+          });
         }
       }
 
