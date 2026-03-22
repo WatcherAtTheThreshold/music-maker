@@ -474,9 +474,7 @@ button.playing {
 
 .mode-card.selected {
   border-color: var(--card-color, var(--accent-primary));
-  background:
-    radial-gradient(ellipse at 25% 15%, rgba(124, 154, 255, 0.06) 0%, transparent 55%),
-    radial-gradient(ellipse at 75% 85%, rgba(126, 232, 168, 0.03) 0%, transparent 50%);
+  background: var(--bg-elevated);
   box-shadow: 0 0 28px var(--card-glow, var(--accent-primary-glow)),
               inset 0 0 0 1px var(--card-glow, var(--accent-primary-glow));
 }
