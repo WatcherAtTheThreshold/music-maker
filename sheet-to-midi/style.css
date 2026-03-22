@@ -474,7 +474,7 @@ button.playing {
 
 .mode-card.selected {
   border-color: var(--card-color, var(--accent-primary));
-  background: var(--card-bg, rgba(124, 154, 255, 0.44));
+  background: var(--card-bg, rgba(124, 154, 255, 0.88));
   box-shadow: 0 0 28px var(--card-glow, var(--accent-primary-glow)),
               inset 0 0 0 1px var(--card-glow, var(--accent-primary-glow));
 }
