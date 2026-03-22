@@ -144,7 +144,7 @@
 
       card.style.setProperty('--card-color', mode.color);
       card.style.setProperty('--card-glow',  hexToRgba(mode.color, 0.22));
-      card.style.setProperty('--card-bg',    hexToRgba(mode.color, 0.07));
+      card.style.setProperty('--card-bg',    hexToRgba(mode.color, 0.22));
 
       card.innerHTML = `
         <div class="card-emoji">${mode.emoji}</div>
