@@ -474,7 +474,7 @@ button.playing {
 
 .mode-card.selected {
   border-color: var(--card-color, var(--accent-primary));
-  background: var(--card-bg, rgba(124, 154, 255, 0.44));
+  background: var(--card-bg, rgba(124, 154, 255, 0.33));
   box-shadow: 0 0 28px var(--card-glow, var(--accent-primary-glow)),
               inset 0 0 0 1px var(--card-glow, var(--accent-primary-glow));
 }
@@ -501,6 +501,16 @@ button.playing {
 
 .mode-card.selected .card-name {
   color: var(--card-color, var(--accent-primary));
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.8);
+}
+
+.mode-card.selected .card-vibe,
+.mode-card.selected .card-key {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.8);
+}
+
+.mode-card.selected .card-emoji {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.9));
 }
 
 .card-vibe {
