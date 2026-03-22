@@ -23,7 +23,7 @@
   /* === MODE DEFINITIONS === */
   const MODES_DATA = [
     { id: 'phrase',    emoji: '✨', name: 'Phrase',      vibe: 'Evolving 8-bar arc',    key: 'C major',      color: '#7c9aff' },
-    { id: 'loop',      emoji: '🔁', name: 'Loop',        vibe: 'Tight & repetitive',    key: 'C major',      color: '#60c8ff' },
+    { id: 'cozy',      emoji: '🌿', name: 'Cozy',        vibe: 'Pastoral & warm',       key: 'G major',      color: '#a8d87c' },
     { id: 'drift',     emoji: '🌊', name: 'Drift',       vibe: 'Sparse & asymmetric',   key: 'C major',      color: '#50dde0' },
     { id: 'fantasy',   emoji: '🏰', name: 'Fantasy',     vibe: 'Medieval, modal',        key: 'D Dorian',     color: '#ffd27c' },
     { id: 'lofi',      emoji: '🎧', name: 'Lo-fi',       vibe: 'Jazzy Nujabes vibes',   key: 'C jazz/blues', color: '#c8a8ff' },
@@ -144,7 +144,7 @@
 
       card.style.setProperty('--card-color', mode.color);
       card.style.setProperty('--card-glow',  hexToRgba(mode.color, 0.22));
-      card.style.setProperty('--card-bg',    hexToRgba(mode.color, 0.433));
+      card.style.setProperty('--card-bg',    hexToRgba(mode.color, 0.11));
 
       card.innerHTML = `
         <div class="card-emoji">${mode.emoji}</div>
@@ -565,7 +565,11 @@
 
     const mode = getMagicMode();
 
-    if (mode === 'fantasy') {
+    if (mode === 'cozy') {
+      generateCozyMelody();
+      generateCozyRightHand();
+      generateCozyBass();
+    } else if (mode === 'fantasy') {
       generateFantasyMelody();
       generateFantasyRightHand();
       generateFantasyBass();
@@ -1428,6 +1432,138 @@
         if (tritone <= STAVES[2].maxMidi && currentBeat + 1 < TOTAL_BEATS) {
           notes.push({ id: nextId++, midi: tritone, startBeat: currentBeat + 1, durBeats: 2, accidental: 0, staffIndex: 2 });
         }
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  /* === COZY / PASTORAL GENERATION === */
+  // Inspired by Stardew Valley (Eric Barone) and Gris (Berlinist)
+  // G major — warm, bright, pastoral. Stepwise melody, rolling arpeggios, stable bass.
+
+  function generateCozyMelody() {
+    // G4=67 A4=69 B4=71 C5=72 D5=74 E5=76 F#5=78 G5=79 A5=81
+    const COZY_SCALE = transposeArr([67, 69, 71, 72, 74, 76, 78, 79, 81], getKeyOffset());
+
+    const rhythmsBySection = {
+      establish: [[2, 1, 1], [1.5, 0.5, 2], [1, 1, 1, 1]],
+      vary:      [[1, 0.5, 0.5, 1, 1], [1.5, 0.5, 1, 1], [2, 1, 0.5, 0.5]],
+      contrast:  [[0.5, 0.5, 1, 1, 1], [1, 1, 0.5, 0.5, 1], [1.5, 0.5, 0.5, 0.5, 1]],
+      resolve:   [[2, 2], [4], [1.5, 0.5, 2]]
+    };
+
+    let currentBeat = 0;
+    let lastIndex   = 2; // Start on B4 — warm 3rd of G
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section  = getPhraseSection(currentBeat);
+      const patterns = rhythmsBySection[section];
+      const pattern  = patterns[Math.floor(Math.random() * patterns.length)];
+
+      for (const dur of pattern) {
+        if (currentBeat >= TOTAL_BEATS) break;
+
+        let restChance = 0.18;
+        if (section === 'resolve')  restChance = 0.28;
+        if (section === 'contrast') restChance = 0.12;
+
+        if (Math.random() < restChance) {
+          currentBeat += dur;
+          continue;
+        }
+
+        // Mostly stepwise, occasional 3rd — very pastoral
+        const dir  = Math.random() < 0.5 ? -1 : 1;
+        const jump = Math.random() < 0.2 ? 2 : 1;
+        lastIndex  = Math.max(0, Math.min(COZY_SCALE.length - 1, lastIndex + dir * jump));
+
+        // Resolve drifts home to G (index 0) or B (index 2)
+        if (section === 'resolve' && Math.random() < 0.5) {
+          const target = Math.random() < 0.6 ? 0 : 2;
+          lastIndex += lastIndex > target ? -1 : (lastIndex < target ? 1 : 0);
+        }
+
+        const midi      = COZY_SCALE[lastIndex];
+        const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+        if (actualDur > 0) {
+          notes.push({ id: nextId++, midi, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 0 });
+        }
+        currentBeat += dur;
+      }
+    }
+  }
+
+  function generateCozyRightHand() {
+    // I-vi-IV-V in G major, always arpeggiated — that rolling piano/guitar feel
+    // G: [67,71,74]  Em: [64,67,71]  C: [72,76,79]  D: [74,78,81]
+    const chordsBySection = transposeChords({
+      establish: [[67, 71, 74], [72, 76, 79]],  // G, C — home warmth
+      vary:      [[64, 67, 71], [72, 76, 79]],  // Em, C — gentle melancholy
+      contrast:  [[74, 78, 81], [64, 67, 71]],  // D, Em — lift then settle
+      resolve:   [[74, 78, 81], [67, 71, 74]]   // D → G — V-I cadence home
+    }, getKeyOffset());
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const chords  = chordsBySection[section];
+
+      let skipChance = 0.08;
+      if (section === 'resolve') skipChance = 0.04;
+
+      if (Math.random() < skipChance) {
+        currentBeat += 2;
+        continue;
+      }
+
+      const chord     = chords[Math.floor(Math.random() * chords.length)];
+      const dur       = section === 'resolve' ? 4 : 2;
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+      // Rolling arpeggio — the cozy signature sound
+      const stepSize = actualDur > 1 ? 0.5 : 0.25;
+      for (let i = 0; i < chord.length; i++) {
+        const offset   = i * stepSize;
+        const noteBeat = currentBeat + offset;
+        const noteDur  = Math.max(0.5, actualDur - offset);
+
+        if (noteBeat < TOTAL_BEATS && noteDur > 0) {
+          notes.push({ id: nextId++, midi: chord[i], startBeat: noteBeat, durBeats: noteDur, accidental: 0, staffIndex: 1 });
+        }
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  function generateCozyBass() {
+    // Stable root movement — half and whole notes, grounded and unhurried
+    // G2=43, E2=40, C3=48, D3=50
+    const bassRoots = transposeRoots({
+      establish: [43, 48],  // G2, C3 — I, IV
+      vary:      [40, 48],  // E2, C3 — vi, IV
+      contrast:  [50, 40],  // D3, E2 — V, vi
+      resolve:   [50, 43]   // D3 → G2 — V-I
+    }, getKeyOffset());
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section   = getPhraseSection(currentBeat);
+      const roots     = bassRoots[section];
+      const dur       = section === 'resolve' ? 4 : (Math.random() < 0.4 ? 4 : 2);
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+      if (actualDur <= 0) break;
+
+      const root = roots[Math.floor(Math.random() * roots.length)];
+      notes.push({ id: nextId++, midi: root, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 2 });
+
+      // Occasional octave doubling for warmth
+      if (Math.random() < 0.35 && root + 12 <= 64) {
+        notes.push({ id: nextId++, midi: root + 12, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 2 });
       }
 
       currentBeat += dur;
