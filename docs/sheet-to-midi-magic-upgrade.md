@@ -116,6 +116,33 @@
 
     ***
 
+    \#\# Key Shift — DAW Compatibility (implemented Mar 2026)
+<br>
+    A **Key Shift** selector (−6 to +6 semitones) was added to the Controls panel. It applies at Magic generation time via four utility functions in `script.js`:
+
+    * `getKeyOffset()` — reads the `#keyShift` select
+    * `transposeArr(arr, n)` — shifts a flat MIDI note array
+    * `transposeChords(sections, n)` — shifts a `{ section: [[midi...]] }` chord map
+    * `transposeRoots(sections, n)` — shifts a `{ section: [midi...] }` roots map
+
+    Every mode's scale, chord, and bass root arrays are wrapped with these at generation time (not stored). The module-level scale constants (`DORIAN_MELODY`, `LOFI_MELODY`, `ADVENTURE_SCALE`, `BOSS_SCALE`, `VICTORY_SCALE`) were converted to function-local transposed values.
+
+    **Native roots per mode** (shown in the Magic Mode dropdown):
+
+    | Mode | Native root | Shift to reach C |
+    |------|------------|-----------------|
+    | Phrase / Loop / Drift | C major | 0 |
+    | Victory | C major | 0 |
+    | Lo-fi | C jazz/blues | 0 |
+    | Fantasy | D Dorian | −2 |
+    | Mystic | D Dorian | −2 |
+    | Boss Battle | D Phrygian | −2 |
+    | Adventure | E minor | −4 |
+
+    To stack multiple mode exports vertically in a DAW, apply the offset that brings each mode's native root to the same target key before generating. Exports are fully compatible in a DAW at beat 1 as long as offsets match.
+
+    ***
+
     \#\# Big picture \(and this feels very on\-brand for you\)
 <br>
     You’re not building a composer.

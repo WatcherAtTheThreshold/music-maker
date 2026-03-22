@@ -3,23 +3,25 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sheet Music → MIDI (Three-Staff Editor)</title>
+<title>MIDI Magic — MIDI Forge Labs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="mist-overlay"></div>
   <div class="wrap">
+
     <header>
       <div class="brand">
-        <div class="brand__title">Sheet Music → MIDI</div>
-        <div class="brand__sub">three-staff composer</div>
+        <div class="brand__title">MIDI Magic</div>
+        <div class="brand__sub">Instant 8-Bar Tracks for Your DAW &mdash; by MIDI Forge Labs</div>
       </div>
-      <span class="badge"><span class="dot"></span> Editor Active</span>
+      <span class="badge"><span class="dot"></span> Generator Ready</span>
     </header>
 
+    <!-- Controls Panel -->
     <section class="panel" id="controlsPanel">
       <div class="panel__head">
         <div class="panel__title">Controls</div>
@@ -28,112 +30,84 @@
         </div>
       </div>
       <div class="panel__body controls" id="controls">
-      <div class="cell" style="grid-column: span 2; min-width: 120px">
-        <label for="bpm">Tempo (BPM)</label>
-        <input id="bpm" type="number" value="100" min="30" max="240" />
-      </div>
-      <div class="cell" style="grid-column: span 2; min-width: 120px">
-        <label for="volume">Volume</label>
-        <input id="volume" type="range" min="0" max="100" value="70" />
-      </div>
-      <div class="cell" style="grid-column: span 2; min-width: 140px">
-        <label>Grid Resolution</label>
-        <select id="snap">
-          <option value="4" selected>Quarter notes</option>
-          <option value="8">Eighth notes</option>
-          <option value="16">Sixteenth notes</option>
-        </select>
-      </div>
-      <div class="cell" style="grid-column: span 2; min-width: 140px">
-        <label>Magic Mode</label>
-        <select id="magicMode">
-          <option value="phrase" selected>✨ Phrase (8-bar arc) — C major</option>
-          <option value="loop">🔁 Loop (tight, repetitive) — C major</option>
-          <option value="drift">🌊 Drift (sparse, asymmetric) — C major</option>
-          <option value="fantasy">🏰 Fantasy (medieval, modal) — D Dorian</option>
-          <option value="lofi">🎧 Lo-fi (jazzy, Nujabes) — C jazz</option>
-          <option value="adventure">⚔️ Adventure (heroic, driving) — E minor</option>
-          <option value="boss">💀 Boss Battle (dark, intense) — D Phrygian</option>
-          <option value="mystic">🌫️ Mystic (dark ambient, ritual) — D Dorian</option>
-          <option value="victory">🏆 Victory (upbeat, fanfare) — C major</option>
-        </select>
-      </div>
-      <div class="cell" style="grid-column: span 2; min-width: 140px">
-        <label>Key Shift</label>
-        <select id="keyShift">
-          <option value="-6">−6 semitones</option>
-          <option value="-5">−5 semitones</option>
-          <option value="-4">−4 semitones</option>
-          <option value="-3">−3 semitones</option>
-          <option value="-2">−2 semitones</option>
-          <option value="-1">−1 semitone</option>
-          <option value="0" selected>0 — default</option>
-          <option value="1">+1 semitone</option>
-          <option value="2">+2 semitones</option>
-          <option value="3">+3 semitones</option>
-          <option value="4">+4 semitones</option>
-          <option value="5">+5 semitones</option>
-          <option value="6">+6 semitones</option>
-        </select>
-      </div>
-      <div class="cell button-row" style="grid-column: span 6;">
-        <button id="randomize" class="magic">Magic</button>
-        <button id="undo">Undo</button>
-        <button id="clear">Clear</button>
-        <button id="loop">Loop</button>
-        <button id="play" class="green">Play</button>
-        <button id="download" class="primary">Export MIDI</button>
-      </div>
-      <div class="sep"></div>
-      <div class="cell" style="grid-column: 1 / -1">
-        <label>Tip</label>
-        <div style="color:var(--text-muted)"><b>Click</b> grid cells to toggle notes on/off. <b>Right-click</b> to erase. <b>Three staves</b>: Melody (blue), Right Hand (green), Left Hand (amber). <b>Magic</b> generates all parts. Scroll horizontally to see all 8 measures.</div>
-      </div>
+        <div class="ctrl-group">
+          <label for="bpm">Tempo (BPM)</label>
+          <input id="bpm" type="number" value="100" min="30" max="240" />
+        </div>
+        <div class="ctrl-group ctrl-volume">
+          <label for="volume">Volume</label>
+          <input id="volume" type="range" min="0" max="100" value="70" />
+        </div>
+        <div class="ctrl-group">
+          <label>Resolution</label>
+          <select id="snap">
+            <option value="4" selected>Quarter notes</option>
+            <option value="8">Eighth notes</option>
+            <option value="16">Sixteenth notes</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <label>Key Shift</label>
+          <select id="keyShift">
+            <option value="-6">&minus;6 semitones</option>
+            <option value="-5">&minus;5 semitones</option>
+            <option value="-4">&minus;4 semitones</option>
+            <option value="-3">&minus;3 semitones</option>
+            <option value="-2">&minus;2 semitones</option>
+            <option value="-1">&minus;1 semitone</option>
+            <option value="0" selected>0 &mdash; default</option>
+            <option value="1">+1 semitone</option>
+            <option value="2">+2 semitones</option>
+            <option value="3">+3 semitones</option>
+            <option value="4">+4 semitones</option>
+            <option value="5">+5 semitones</option>
+            <option value="6">+6 semitones</option>
+          </select>
+        </div>
+        <div class="ctrl-group ctrl-buttons">
+          <button id="undo">Undo</button>
+          <button id="clear">Clear</button>
+          <button id="loop">Loop</button>
+          <button id="play" class="green">Play</button>
+          <button id="download" class="primary">Export MIDI</button>
+        </div>
       </div>
     </section>
 
-    <!-- Melody Staff -->
-    <section class="panel staff-section" data-staff="0">
-      <div class="panel__head">
-        <div class="panel__title">Melody</div>
-        <div class="panel__meta">C4 - A5 (Treble)</div>
+    <!-- Mode Cards -->
+    <section class="modes-section">
+      <div class="modes-header">
+        <div class="modes-title">Choose Your Mode</div>
+        <div class="modes-sub">Click any card to instantly generate an 8-bar composition</div>
       </div>
-      <div class="panel__body">
-        <div class="pitch-grid" id="melodyGrid"></div>
-      </div>
-    </section>
-
-    <!-- Right Hand Staff -->
-    <section class="panel staff-section" data-staff="1">
-      <div class="panel__head">
-        <div class="panel__title">Right Hand</div>
-        <div class="panel__meta">C4 - A5 (Treble)</div>
-      </div>
-      <div class="panel__body">
-        <div class="pitch-grid" id="rightHandGrid"></div>
+      <div class="mode-cards" id="modeCards"></div>
+      <div class="generate-row">
+        <button id="generateBtn" class="generate-btn">&#10022; GENERATE &mdash; Phrase</button>
       </div>
     </section>
 
-    <!-- Left Hand Staff -->
-    <section class="panel staff-section" data-staff="2">
-      <div class="panel__head">
-        <div class="panel__title">Left Hand</div>
-        <div class="panel__meta">C2 - E4 (Bass)</div>
+    <!-- Composition Panel -->
+    <section class="panel composition-panel">
+      <div class="panel__head comp-head">
+        <div class="panel__title">Current Composition</div>
+        <div class="panel__meta comp-info" id="compInfo">No composition generated yet &mdash; choose a mode above</div>
       </div>
-      <div class="panel__body">
-        <div class="pitch-grid" id="leftHandGrid"></div>
+      <div class="panel__body comp-body">
+        <canvas id="waveformCanvas" height="80"></canvas>
       </div>
     </section>
 
     <footer class="footer">
-      <div class="micro">Built with plain HTML/CSS/JS. No external libraries. Export to MIDI for your DAW.</div>
+      <div class="micro">Built as a native-feeling web instrument &bull; Export MIDI ready for Ableton, FL Studio, Logic Pro &bull; Three-staff generation (Melody &bull; Right Hand &bull; Left Hand)</div>
     </footer>
+
   </div>
 
   <script src="script.js"></script>
   <script>
-    // Collapsible panels
-    document.querySelectorAll('.panel__head, .panel-header').forEach(header => {
+    // Collapsible panels (controls only)
+    document.querySelectorAll('.panel__head').forEach(header => {
+      if (header.closest('.composition-panel')) return;
       header.addEventListener('click', () => {
         header.parentElement.classList.toggle('collapsed');
       });
