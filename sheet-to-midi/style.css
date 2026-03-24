@@ -431,55 +431,41 @@ button.playing {
 }
 
 .mode-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg) var(--space-md) var(--space-md);
+  position: relative;
+  justify-self: center;
+  align-self: start;
   cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-  text-align: center;
+  transition: transform 0.1s ease;
+  user-select: none;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.card-btn-img {
+  display: block;
+  /* image renders at its natural pixel size — resize the file to resize the button */
+}
+
+.card-content {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  position: relative;
-  overflow: hidden;
-  user-select: none;
-}
-
-/* Top accent stripe */
-.mode-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--card-color, var(--accent-primary));
-  opacity: 0;
-  transition: opacity 0.18s ease;
+  text-align: center;
 }
 
 .mode-card:hover {
-  border-color: var(--card-color, var(--accent-primary));
-  background: var(--bg-elevated);
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5),
-              0 0 18px var(--card-glow, var(--accent-primary-glow));
+  transform: translateY(-2px);
 }
 
-.mode-card:hover::before { opacity: 1; }
-
-.mode-card:active { transform: translateY(-1px); }
-
+.mode-card:active,
 .mode-card.selected {
-  border-color: var(--card-color, var(--accent-primary));
-  background: var(--card-bg, rgba(124, 154, 255, 0.11));
-  box-shadow: 0 0 28px var(--card-glow, var(--accent-primary-glow)),
-              inset 0 0 0 1px var(--card-glow, var(--accent-primary-glow));
+  transform: translateY(1px);
 }
-
-.mode-card.selected::before { opacity: 1; }
 
 /* Card content */
 .card-emoji {
@@ -500,17 +486,12 @@ button.playing {
 }
 
 .mode-card.selected .card-name {
-  color: var(--card-color, var(--accent-primary));
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 
 .mode-card.selected .card-vibe,
 .mode-card.selected .card-key {
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.8);
-}
-
-.mode-card.selected .card-emoji {
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.9));
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 .card-vibe {
