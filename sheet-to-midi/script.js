@@ -31,6 +31,9 @@
     { id: 'boss',      emoji: '💀', name: 'Boss Battle', vibe: 'Dark & intense',         key: 'D Phrygian',   color: '#ff7c7c' },
     { id: 'mystic',    emoji: '🌫️', name: 'Mystic',      vibe: 'Dark ambient, ritual',  key: 'D Dorian',     color: '#9a80ff' },
     { id: 'victory',   emoji: '🏆', name: 'Victory',     vibe: 'Upbeat fanfare',        key: 'C major',      color: '#ffe87c' },
+    { id: 'spacedrift',  emoji: '🌌', name: 'Space Drift',  vibe: 'Floating, ethereal',   key: 'C minor',      color: '#5588cc' },
+    { id: 'spacefight',  emoji: '🚀', name: 'Space Fight',  vibe: 'Tense & driving',      key: 'C Phrygian',   color: '#cc4455' },
+    { id: 'spacevictory',emoji: '⭐', name: 'Space Victory',vibe: 'Triumphant & soaring', key: 'C major',      color: '#88ccff' },
   ];
 
   /* === APPLICATION STATE === */
@@ -598,6 +601,18 @@
       generateVictoryMelody();
       generateVictoryRightHand();
       generateVictoryBass();
+    } else if (mode === 'spacedrift') {
+      generateSpaceDriftMelody();
+      generateSpaceDriftRightHand();
+      generateSpaceDriftBass();
+    } else if (mode === 'spacefight') {
+      generateSpaceFightMelody();
+      generateSpaceFightRightHand();
+      generateSpaceFightBass();
+    } else if (mode === 'spacevictory') {
+      generateSpaceVictoryMelody();
+      generateSpaceVictoryRightHand();
+      generateSpaceVictoryBass();
     } else {
       generateMelodyStaff(mode);
       generateRightHandStaff(mode);
@@ -1693,6 +1708,354 @@
       notes.push({ id: nextId++, midi: root, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 2 });
 
       if (currentBeat % 2 === 0 && Math.random() < 0.45) {
+        const octave = root + 12;
+        if (octave <= 64) {
+          notes.push({ id: nextId++, midi: octave, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 2 });
+        }
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  /* === SPACE DRIFT GENERATION === */
+  // C natural minor (Aeolian) — sparse, long notes, floating feel
+
+  function generateSpaceDriftMelody() {
+    const SCALE = transposeArr([60, 62, 63, 65, 67, 68, 70, 72, 74, 75, 77, 79], getKeyOffset());
+
+    let currentBeat = 0;
+    let lastIndex   = 4; // Start on G — open fifth feel
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section    = getPhraseSection(currentBeat);
+      const durOptions = section === 'resolve'   ? [4, 6, 8] :
+                         section === 'contrast'  ? [1, 2, 3] :
+                                                   [2, 3, 4];
+      const dur = durOptions[Math.floor(Math.random() * durOptions.length)];
+
+      // Very sparse — lots of space/silence
+      const restChance = section === 'contrast' ? 0.30 : 0.48;
+      if (Math.random() < restChance) {
+        currentBeat += dur;
+        continue;
+      }
+
+      // Mostly stepwise, occasional wide leap for "floating" feeling
+      const dir  = Math.random() < 0.5 ? -1 : 1;
+      const jump = Math.random() < 0.15 ? Math.floor(Math.random() * 3) + 4 : 1;
+      lastIndex  = Math.max(0, Math.min(SCALE.length - 1, lastIndex + dir * jump));
+
+      if (section === 'resolve' && Math.random() < 0.6) {
+        lastIndex = lastIndex > 0 ? lastIndex - 1 : 0; // Drift down to root
+      }
+
+      const midi      = SCALE[lastIndex];
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+      if (actualDur > 0) {
+        notes.push({ id: nextId++, midi, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 0 });
+      }
+      currentBeat += dur;
+    }
+  }
+
+  function generateSpaceDriftRightHand() {
+    // Open fifths and octaves only — no thirds, keeps it spacious
+    const rootsBySection = transposeChords({
+      establish: [[60, 67], [63, 70]],
+      vary:      [[65, 72], [60, 72]],
+      contrast:  [[68, 75], [63, 75]],
+      resolve:   [[60, 67], [60, 72]]
+    }, getKeyOffset());
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const options = rootsBySection[section];
+
+      // Very sparse — skip most beats
+      if (Math.random() < 0.55) {
+        const skip = Math.random() < 0.5 ? 2 : 4;
+        currentBeat += skip;
+        continue;
+      }
+
+      const dyad      = options[Math.floor(Math.random() * options.length)];
+      const dur       = section === 'resolve' ? 4 : (Math.random() < 0.6 ? 3 : 2);
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+      for (const midi of dyad) {
+        notes.push({ id: nextId++, midi, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 1 });
+      }
+      currentBeat += dur;
+    }
+  }
+
+  function generateSpaceDriftBass() {
+    const bassRoots = transposeRoots({
+      establish: [36, 43],
+      vary:      [39, 46],
+      contrast:  [44, 39],
+      resolve:   [36, 43]
+    }, getKeyOffset());
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const roots   = bassRoots[section];
+
+      // Long, slow bass notes — anchor the floating melody
+      const dur       = section === 'resolve' ? 8 : (Math.random() < 0.5 ? 4 : 8);
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+      if (actualDur <= 0) break;
+
+      const root = roots[Math.floor(Math.random() * roots.length)];
+      notes.push({ id: nextId++, midi: root, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 2 });
+      currentBeat += dur;
+    }
+  }
+
+  /* === SPACE FIGHT GENERATION === */
+  // C Phrygian — tense, driving, angular. Characteristic b2 (Db) creates friction.
+
+  function generateSpaceFightMelody() {
+    const SCALE = transposeArr([60, 61, 63, 65, 67, 68, 70, 72, 73, 75, 77, 79], getKeyOffset());
+
+    const rhythmsBySection = {
+      establish: [[1, 1, 1, 1], [0.5, 0.5, 1, 0.5, 0.5, 1], [1, 0.5, 0.5, 1, 1]],
+      vary:      [[0.5, 0.5, 0.5, 0.5, 1, 1], [1, 0.5, 0.5, 0.5, 0.5, 1], [0.5, 0.5, 1, 1, 1]],
+      contrast:  [[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1], [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], [1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]],
+      resolve:   [[2, 1, 1], [1, 1, 2], [4]]
+    };
+
+    let currentBeat = 0;
+    let lastIndex   = 0; // Start on C — root feels urgent when surrounded by chromatics
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section  = getPhraseSection(currentBeat);
+      const patterns = rhythmsBySection[section];
+      const pattern  = patterns[Math.floor(Math.random() * patterns.length)];
+
+      for (const dur of pattern) {
+        if (currentBeat >= TOTAL_BEATS) break;
+
+        const restChance = section === 'resolve' ? 0.12 : 0.05;
+        if (Math.random() < restChance) {
+          currentBeat += dur;
+          continue;
+        }
+
+        // Angular motion — steps AND leaps, bias toward chromatic neighbour (b2)
+        const roll = Math.random();
+        if (roll < 0.25) {
+          lastIndex = 1; // Force to Db — the Phrygian tension note
+        } else if (roll < 0.55) {
+          const dir = Math.random() < 0.5 ? 1 : -1;
+          lastIndex = Math.max(0, Math.min(SCALE.length - 1, lastIndex + dir));
+        } else {
+          const dir  = Math.random() < 0.55 ? 1 : -1;
+          const jump = Math.floor(Math.random() * 3) + 2;
+          lastIndex  = Math.max(0, Math.min(SCALE.length - 1, lastIndex + dir * jump));
+        }
+
+        if (section === 'resolve' && Math.random() < 0.5) {
+          lastIndex = 0; // Resolve back to C root
+        }
+
+        const midi      = SCALE[lastIndex];
+        const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+        if (actualDur > 0) {
+          notes.push({ id: nextId++, midi, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 0 });
+        }
+        currentBeat += dur;
+      }
+    }
+  }
+
+  function generateSpaceFightRightHand() {
+    // Tight dissonant dyads — minor 2nds and tritones for maximum tension
+    const chordsBySection = transposeChords({
+      establish: [[60, 61], [60, 66]],
+      vary:      [[63, 68], [60, 61, 66]],
+      contrast:  [[60, 61], [63, 64], [60, 66]],
+      resolve:   [[60, 67], [60, 63, 67]]
+    }, getKeyOffset());
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const chords  = chordsBySection[section];
+
+      if (Math.random() < 0.06) {
+        currentBeat += 1;
+        continue;
+      }
+
+      const chord     = chords[Math.floor(Math.random() * chords.length)];
+      const dur       = section === 'contrast' ? (Math.random() < 0.7 ? 0.5 : 1)
+                      : section === 'resolve'  ? (Math.random() < 0.5 ? 2 : 1)
+                      :                          1;
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+
+      for (const midi of chord) {
+        notes.push({ id: nextId++, midi, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 1 });
+      }
+      currentBeat += dur;
+    }
+  }
+
+  function generateSpaceFightBass() {
+    const bassRoots = transposeRoots({
+      establish: [36, 37],   // C2, Db2 — Phrygian tension in bass
+      vary:      [36, 43],   // C2, G2
+      contrast:  [36, 37, 44], // C2, Db2, Ab2
+      resolve:   [36, 43]
+    }, getKeyOffset());
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const roots   = bassRoots[section];
+
+      // Driving pulse — mostly quarter and half notes
+      const dur       = section === 'contrast' ? 1 : (Math.random() < 0.6 ? 1 : 2);
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+      if (actualDur <= 0) break;
+
+      const root = roots[Math.floor(Math.random() * roots.length)];
+      notes.push({ id: nextId++, midi: root, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 2 });
+
+      // Occasional octave stab for impact
+      if (currentBeat % 4 === 0 && Math.random() < 0.35) {
+        const octave = root + 12;
+        if (octave <= 64) {
+          notes.push({ id: nextId++, midi: octave, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 2 });
+        }
+      }
+
+      currentBeat += dur;
+    }
+  }
+
+  /* === SPACE VICTORY GENERATION === */
+  // C major — triumphant, soaring. Wide leaps, ascending fanfares, strong upward bias.
+
+  function generateSpaceVictoryMelody() {
+    const SCALE = transposeArr([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81], getKeyOffset());
+
+    const rhythmsBySection = {
+      establish: [[1.5, 0.5, 1, 1], [1, 1, 1, 1], [2, 1, 1]],
+      vary:      [[0.5, 0.5, 0.5, 0.5, 1, 1], [1.5, 0.5, 1, 0.5, 0.5], [1, 0.5, 0.5, 1, 1]],
+      contrast:  [[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1], [1, 0.5, 0.5, 0.5, 0.5, 1], [0.5, 0.5, 1, 1, 1]],
+      resolve:   [[4], [2, 2], [1.5, 0.5, 2]]
+    };
+
+    let currentBeat = 0;
+    let lastIndex   = 4; // Start on G — strong fifth, launches upward
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section  = getPhraseSection(currentBeat);
+      const patterns = rhythmsBySection[section];
+      const pattern  = patterns[Math.floor(Math.random() * patterns.length)];
+
+      for (const dur of pattern) {
+        if (currentBeat >= TOTAL_BEATS) break;
+
+        const restChance = section === 'resolve' ? 0.18 : 0.07;
+        if (Math.random() < restChance) {
+          currentBeat += dur;
+          continue;
+        }
+
+        // Strong upward bias — soaring fanfare motion
+        const dir       = Math.random() < 0.70 ? 1 : -1;
+        const leapChance = section === 'contrast' ? 0.5 : 0.35;
+        const jump      = Math.random() < leapChance ? (Math.floor(Math.random() * 3) + 3) : 1;
+        lastIndex       = Math.max(0, Math.min(SCALE.length - 1, lastIndex + dir * jump));
+
+        // Keep melody in upper register during contrast for climax
+        if (section === 'contrast' && lastIndex < 7) lastIndex = 7;
+
+        // Resolve settles to C (index 0 or 7)
+        if (section === 'resolve' && Math.random() < 0.55) {
+          const target = lastIndex >= 7 ? 7 : 0;
+          lastIndex += lastIndex > target ? -1 : (lastIndex < target ? 1 : 0);
+        }
+
+        const midi      = SCALE[lastIndex];
+        const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+        if (actualDur > 0) {
+          notes.push({ id: nextId++, midi, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 0 });
+        }
+        currentBeat += dur;
+      }
+    }
+  }
+
+  function generateSpaceVictoryRightHand() {
+    // Bright major triads, occasional add9 for shimmering space quality
+    const chordsBySection = transposeChords({
+      establish: [[60, 64, 67], [67, 71, 74]],
+      vary:      [[65, 69, 72], [62, 65, 69, 74]],
+      contrast:  [[69, 72, 76, 79], [67, 71, 74, 77]],
+      resolve:   [[60, 64, 67, 72], [60, 64, 67]]
+    }, getKeyOffset());
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const chords  = chordsBySection[section];
+
+      if (Math.random() < 0.06) {
+        currentBeat += 1;
+        continue;
+      }
+
+      const chord      = chords[Math.floor(Math.random() * chords.length)];
+      const dur        = section === 'resolve' ? 4 : (Math.random() < 0.5 ? 2 : 1);
+      const actualDur  = Math.min(dur, TOTAL_BEATS - currentBeat);
+      const arpeggiate = Math.random() < 0.40; // More arpeggio than Victory for shimmer
+
+      for (let i = 0; i < chord.length; i++) {
+        const offset   = arpeggiate ? i * 0.25 : 0;
+        const noteBeat = currentBeat + offset;
+        const noteDur  = Math.max(0.5, actualDur - offset);
+        if (noteBeat < TOTAL_BEATS && noteDur > 0) {
+          notes.push({ id: nextId++, midi: chord[i], startBeat: noteBeat, durBeats: noteDur, accidental: 0, staffIndex: 1 });
+        }
+      }
+      currentBeat += dur;
+    }
+  }
+
+  function generateSpaceVictoryBass() {
+    const bassRoots = transposeRoots({
+      establish: [36, 43],   // C2, G2
+      vary:      [41, 43],   // F2, G2
+      contrast:  [45, 48, 43], // A2, C3, G2
+      resolve:   [36, 43]    // C2, G2
+    }, getKeyOffset());
+
+    let currentBeat = 0;
+
+    while (currentBeat < TOTAL_BEATS) {
+      const section = getPhraseSection(currentBeat);
+      const roots   = bassRoots[section];
+
+      const dur       = section === 'contrast' ? 1 : (Math.random() < 0.5 ? 2 : 1);
+      const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
+      if (actualDur <= 0) break;
+
+      const root = roots[Math.floor(Math.random() * roots.length)];
+      notes.push({ id: nextId++, midi: root, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 2 });
+
+      // Octave doubling on downbeats — big, full sound
+      if (currentBeat % 2 === 0 && Math.random() < 0.5) {
         const octave = root + 12;
         if (octave <= 64) {
           notes.push({ id: nextId++, midi: octave, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 2 });
