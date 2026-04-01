@@ -544,7 +544,7 @@ button.playing {
   );
   box-shadow: 0 0 36px rgba(124, 154, 255, 0.28),
               0 4px 20px rgba(0, 0, 0, 0.4);
-  transform: translateY(-2px);
+  
   color: #c8d8ff;
 }
 
