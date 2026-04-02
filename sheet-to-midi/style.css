@@ -435,7 +435,7 @@ button.playing {
   justify-self: center;
   align-self: start;
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: filter 0.15s ease;
   user-select: none;
   padding: 0;
   border: none;
@@ -458,13 +458,13 @@ button.playing {
   text-align: center;
 }
 
+
 .mode-card:hover {
-  transform: translateY(-2px);
+  filter: brightness(1.2);
 }
 
-.mode-card:active,
-.mode-card.selected {
-  transform: translateY(1px);
+.mode-card:active {
+  filter: brightness(0.85);
 }
 
 /* Card content */
@@ -533,8 +533,7 @@ button.playing {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 0 20px rgba(124, 154, 255, 0.08);
+ 
 }
 
 .generate-btn:hover {
