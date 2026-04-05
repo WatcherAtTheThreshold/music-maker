@@ -155,8 +155,6 @@
         <div class="card-content">
           <div class="card-emoji">${mode.emoji}</div>
           <div class="card-name">${mode.name}</div>
-          <div class="card-vibe">${mode.vibe}</div>
-          <div class="card-key">${mode.key}</div>
         </div>
       `;
 
@@ -165,8 +163,12 @@
     }
   }
 
+  const btnPressSound = new Audio('audio/mode-button-press.mp3');
+
   function selectMode(modeId) {
     selectedModeId = modeId;
+    btnPressSound.currentTime = 0;
+    btnPressSound.play().catch(() => {});  // Silently ignore if autoplay blocked
 
     document.querySelectorAll('.mode-card').forEach(card => {
       const isSelected = card.dataset.mode === modeId;
