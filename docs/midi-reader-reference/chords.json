@@ -1,0 +1,187 @@
+{
+  "header": {
+    "keySignatures": [],
+    "meta": [],
+    "name": "",
+    "ppq": 96,
+    "tempos": [],
+    "timeSignatures": [
+      {
+        "ticks": 0,
+        "timeSignature": [
+          4,
+          4
+        ],
+        "measures": 0
+      },
+      {
+        "ticks": 0,
+        "timeSignature": [
+          4,
+          4
+        ],
+        "measures": 0
+      }
+    ]
+  },
+  "tracks": [
+    {
+      "channel": 0,
+      "controlChanges": {},
+      "pitchBends": [],
+      "instrument": {
+        "family": "piano",
+        "number": 0,
+        "name": "acoustic grand piano"
+      },
+      "name": "",
+      "notes": [
+        {
+          "duration": 2,
+          "durationTicks": 384,
+          "midi": 52,
+          "name": "E3",
+          "ticks": 0,
+          "time": 0,
+          "velocity": 0.3543307086614173
+        },
+        {
+          "duration": 2,
+          "durationTicks": 384,
+          "midi": 55,
+          "name": "G3",
+          "ticks": 0,
+          "time": 0,
+          "velocity": 0.36220472440944884
+        },
+        {
+          "duration": 1.9791666666666667,
+          "durationTicks": 380,
+          "midi": 59,
+          "name": "B3",
+          "ticks": 4,
+          "time": 0.020833333333333332,
+          "velocity": 0.3464566929133858
+        },
+        {
+          "duration": 1.9739583333333333,
+          "durationTicks": 379,
+          "midi": 48,
+          "name": "C3",
+          "ticks": 5,
+          "time": 0.026041666666666668,
+          "velocity": 0.36220472440944884
+        },
+        {
+          "duration": 2,
+          "durationTicks": 384,
+          "midi": 56,
+          "name": "G#3",
+          "ticks": 384,
+          "time": 2,
+          "velocity": 0.2677165354330709
+        },
+        {
+          "duration": 2,
+          "durationTicks": 384,
+          "midi": 59,
+          "name": "B3",
+          "ticks": 384,
+          "time": 2,
+          "velocity": 0.29133858267716534
+        },
+        {
+          "duration": 1.9947916666666665,
+          "durationTicks": 383,
+          "midi": 52,
+          "name": "E3",
+          "ticks": 385,
+          "time": 2.0052083333333335,
+          "velocity": 0.29133858267716534
+        },
+        {
+          "duration": 1.9947916666666665,
+          "durationTicks": 383,
+          "midi": 62,
+          "name": "D4",
+          "ticks": 385,
+          "time": 2.0052083333333335,
+          "velocity": 0.3464566929133858
+        },
+        {
+          "duration": 2,
+          "durationTicks": 384,
+          "midi": 60,
+          "name": "C4",
+          "ticks": 768,
+          "time": 4,
+          "velocity": 0.2677165354330709
+        },
+        {
+          "duration": 2,
+          "durationTicks": 384,
+          "midi": 64,
+          "name": "E4",
+          "ticks": 768,
+          "time": 4,
+          "velocity": 0.28346456692913385
+        },
+        {
+          "duration": 1.984375,
+          "durationTicks": 381,
+          "midi": 57,
+          "name": "A3",
+          "ticks": 771,
+          "time": 4.015625,
+          "velocity": 0.33858267716535434
+        },
+        {
+          "duration": 1.963541666666667,
+          "durationTicks": 377,
+          "midi": 67,
+          "name": "G4",
+          "ticks": 775,
+          "time": 4.036458333333333,
+          "velocity": 0.3858267716535433
+        },
+        {
+          "duration": 3.072916666666666,
+          "durationTicks": 590,
+          "midi": 60,
+          "name": "C4",
+          "ticks": 1152,
+          "time": 6,
+          "velocity": 0.33858267716535434
+        },
+        {
+          "duration": 3.072916666666666,
+          "durationTicks": 590,
+          "midi": 57,
+          "name": "A3",
+          "ticks": 1152,
+          "time": 6,
+          "velocity": 0.3700787401574803
+        },
+        {
+          "duration": 3.046874999999999,
+          "durationTicks": 585,
+          "midi": 53,
+          "name": "F3",
+          "ticks": 1154,
+          "time": 6.010416666666667,
+          "velocity": 0.41732283464566927
+        },
+        {
+          "duration": 3.005208333333334,
+          "durationTicks": 577,
+          "midi": 64,
+          "name": "E4",
+          "ticks": 1155,
+          "time": 6.015625,
+          "velocity": 0.3700787401574803
+        }
+      ],
+      "endOfTrackTicks": 1742
+    }
+  ]
+}

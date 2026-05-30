@@ -1,0 +1,115 @@
+{
+  "header": {
+    "keySignatures": [],
+    "meta": [],
+    "name": "",
+    "ppq": 96,
+    "tempos": [],
+    "timeSignatures": [
+      {
+        "ticks": 0,
+        "timeSignature": [
+          4,
+          4
+        ],
+        "measures": 0
+      },
+      {
+        "ticks": 0,
+        "timeSignature": [
+          4,
+          4
+        ],
+        "measures": 0
+      }
+    ]
+  },
+  "tracks": [
+    {
+      "channel": 0,
+      "controlChanges": {},
+      "pitchBends": [],
+      "instrument": {
+        "family": "piano",
+        "number": 0,
+        "name": "acoustic grand piano"
+      },
+      "name": "",
+      "notes": [
+        {
+          "duration": 1.6145833333333333,
+          "durationTicks": 310,
+          "midi": 24,
+          "name": "C1",
+          "ticks": 85,
+          "time": 0.4427083333333333,
+          "velocity": 0.3464566929133858
+        },
+        {
+          "duration": 1.8854166666666665,
+          "durationTicks": 362,
+          "midi": 28,
+          "name": "E1",
+          "ticks": 405,
+          "time": 2.109375,
+          "velocity": 0.25984251968503935
+        },
+        {
+          "duration": 2.0625,
+          "durationTicks": 396,
+          "midi": 33,
+          "name": "A1",
+          "ticks": 756,
+          "time": 3.9375,
+          "velocity": 0.2283464566929134
+        },
+        {
+          "duration": 1.9999999999999991,
+          "durationTicks": 384,
+          "midi": 29,
+          "name": "F1",
+          "ticks": 1154,
+          "time": 6.010416666666667,
+          "velocity": 0.2992125984251969
+        },
+        {
+          "duration": 1.875,
+          "durationTicks": 360,
+          "midi": 24,
+          "name": "C1",
+          "ticks": 1546,
+          "time": 8.052083333333334,
+          "velocity": 0.4251968503937008
+        },
+        {
+          "duration": 2.010416666666666,
+          "durationTicks": 386,
+          "midi": 28,
+          "name": "E1",
+          "ticks": 1926,
+          "time": 10.03125,
+          "velocity": 0.33858267716535434
+        },
+        {
+          "duration": 2.026041666666666,
+          "durationTicks": 389,
+          "midi": 33,
+          "name": "A1",
+          "ticks": 2307,
+          "time": 12.015625,
+          "velocity": 0.4094488188976378
+        },
+        {
+          "duration": 2.041666666666666,
+          "durationTicks": 392,
+          "midi": 29,
+          "name": "F1",
+          "ticks": 2693,
+          "time": 14.026041666666666,
+          "velocity": 0.4409448818897638
+        }
+      ],
+      "endOfTrackTicks": 3085
+    }
+  ]
+}

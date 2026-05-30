@@ -71,9 +71,12 @@
   const jsonOutput         = document.getElementById('jsonOutput');
   const copySummary        = document.getElementById('copySummary');
   const copyJson           = document.getElementById('copyJson');
-  const downloadJson       = document.getElementById('downloadJson');
+  const downloadJsonBtn    = document.getElementById('downloadJson');
+  const jsonInput          = document.getElementById('jsonInput');
+  const exportMidiBtn      = document.getElementById('exportMidi');
+  const exportStatus       = document.getElementById('exportStatus');
 
-  // ── Drop zone ───────────────────────────────────────────────────────────
+  // ── MIDI → JSON: drop zone ───────────────────────────────────────────
   dropZone.addEventListener('click', () => fileInput.click());
 
   dropZone.addEventListener('dragover', (e) => {
@@ -97,12 +100,11 @@
     if (file) loadFile(file);
   });
 
-  // ── Controls ────────────────────────────────────────────────────────────
   clearBtn.addEventListener('click', resetState);
   copySummary.addEventListener('click', () => copyText(summaryOutput.textContent));
   copyJson.addEventListener('click',    () => copyText(jsonOutput.textContent));
 
-  downloadJson.addEventListener('click', () => {
+  downloadJsonBtn.addEventListener('click', () => {
     const blob = new Blob([jsonOutput.textContent], { type: 'application/json' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
@@ -112,7 +114,41 @@
     URL.revokeObjectURL(url);
   });
 
-  // ── File loading ────────────────────────────────────────────────────────
+  // ── JSON → MIDI: export ──────────────────────────────────────────────
+  exportMidiBtn.addEventListener('click', () => {
+    const text = jsonInput.value.trim();
+    if (!text) { setExportStatus('Paste a JSON summary first.', 'error'); return; }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      setExportStatus('Invalid JSON — ' + e.message, 'error');
+      return;
+    }
+
+    try {
+      const bytes = buildMidiFromJson(data);
+      const stem  = (data.file || 'export').replace(/\.midi?$/i, '').replace(/\.json$/i, '');
+      const blob  = new Blob([bytes], { type: 'audio/midi' });
+      const url   = URL.createObjectURL(blob);
+      const a     = document.createElement('a');
+      a.href      = url;
+      a.download  = stem + '.mid';
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportStatus('Downloaded ' + stem + '.mid', 'success');
+    } catch (e) {
+      setExportStatus('Export error — ' + e.message, 'error');
+    }
+  });
+
+  function setExportStatus(msg, type) {
+    exportStatus.textContent = msg;
+    exportStatus.className   = 'export-status' + (type ? ' ' + type : '');
+  }
+
+  // ── File loading ──────────────────────────────────────────────────────
   function loadFile(file) {
     fileNameEl.textContent = file.name;
     fileInfo.hidden = false;
@@ -129,18 +165,17 @@
     reader.readAsArrayBuffer(file);
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────
+  // ── MIDI → JSON render ────────────────────────────────────────────────
   function renderOutput(midi, filename) {
     showSummary(buildMusicalSummary(midi, filename));
     showJson(JSON.stringify(buildMusicalJson(midi, filename), null, 2));
   }
 
-  // ── Musical Summary (readable text) ─────────────────────────────────────
   function buildMusicalSummary(midi, filename) {
     const ts  = midi.timeSigs[0] ?? { numerator: 4, denominator: 4 };
     const bpm = midi.tempos[0]?.bpm ?? 120;
     const ks  = midi.keySigs[0] ?? null;
-    const { totalBars, ticksPerBar } = calcBars(midi, ts);
+    const { totalBars } = calcBars(midi, ts);
     const noteTracks = midi.tracks.filter(t => t.notes.length > 0);
 
     let s = '';
@@ -168,10 +203,7 @@
 
       s += `\n${bar}\n ${label}\n${bar}\n`;
 
-      if (track.notes.length === 0) {
-        s += '  (no notes)\n';
-        continue;
-      }
+      if (track.notes.length === 0) { s += '  (no notes)\n'; continue; }
 
       const sorted  = [...track.notes].sort((a, b) => a.tick - b.tick || a.midi - b.midi);
       const display = sorted.slice(0, MAX_NOTES);
@@ -196,7 +228,6 @@
     return s;
   }
 
-  // ── Musical JSON ─────────────────────────────────────────────────────────
   function buildMusicalJson(midi, filename) {
     const ts  = midi.timeSigs[0] ?? { numerator: 4, denominator: 4 };
     const bpm = midi.tempos[0]?.bpm ?? 120;
@@ -221,8 +252,7 @@
         : (track.program !== null ? (GM_INSTRUMENTS[track.program] ?? `GM#${track.program + 1}`) : null);
 
       const sorted = [...track.notes].sort((a, b) => a.tick - b.tick || a.midi - b.midi);
-
-      const notes = sorted.map(n => {
+      const notes  = sorted.map(n => {
         const beat = fmtMeasureBeat(n.tick, midi.tpq, ts);
         return isDrum
           ? { drum: GM_DRUMS[n.midi] ?? `Note ${n.midi}`, beat, velocity: n.velocity }
@@ -241,7 +271,153 @@
     return out;
   }
 
-  // ── Musical helpers ──────────────────────────────────────────────────────
+  // ── JSON → MIDI writer ────────────────────────────────────────────────
+  function buildMidiFromJson(data) {
+    const TPQ    = 480;
+    const bpm    = data.tempo_bpm ?? 120;
+    const uspqn  = Math.round(60000000 / bpm);
+    const [tsNum, tsDen] = (data.time_signature ?? '4/4').split('/').map(Number);
+    const ts      = { numerator: tsNum, denominator: tsDen };
+    const denLog2 = Math.round(Math.log2(tsDen));
+
+    const conductor = buildConductorTrack(uspqn, tsNum, denLog2);
+    const noteTrks  = (data.tracks ?? []).map(t => buildNoteTrack(t, TPQ, ts));
+    const all       = [conductor, ...noteTrks];
+
+    // MThd
+    const hdr = [];
+    mStr(hdr, 'MThd'); mU32(hdr, 6); mU16(hdr, 1); mU16(hdr, all.length); mU16(hdr, TPQ);
+
+    const totalLen = hdr.length + all.reduce((s, t) => s + 8 + t.length, 0);
+    const out = new Uint8Array(totalLen);
+    let pos = 0;
+
+    hdr.forEach(b => out[pos++] = b);
+    for (const trk of all) {
+      // MTrk tag
+      out[pos++] = 0x4d; out[pos++] = 0x54; out[pos++] = 0x72; out[pos++] = 0x6b;
+      // Track length
+      out[pos++] = (trk.length >> 24) & 0xff;
+      out[pos++] = (trk.length >> 16) & 0xff;
+      out[pos++] = (trk.length >>  8) & 0xff;
+      out[pos++] =  trk.length        & 0xff;
+      trk.forEach(b => out[pos++] = b);
+    }
+
+    return out;
+  }
+
+  function buildConductorTrack(uspqn, tsNum, denLog2) {
+    const ev = [];
+    mVlq(ev, 0); ev.push(0xff, 0x58, 0x04, tsNum, denLog2, 24, 8);          // time sig
+    mVlq(ev, 0); ev.push(0xff, 0x51, 0x03,                                   // tempo
+      (uspqn >> 16) & 0xff, (uspqn >> 8) & 0xff, uspqn & 0xff);
+    mVlq(ev, 0); ev.push(0xff, 0x2f, 0x00);                                  // end of track
+    return ev;
+  }
+
+  function buildNoteTrack(track, tpq, ts) {
+    const ev = [];
+
+    // Drums: channel 10 in JSON (1-based), [percussion] instrument, or notes have .drum field
+    const hasDrumField = (track.notes ?? []).length > 0 && track.notes[0].drum !== undefined;
+    const isDrum = track.channel === 10 || track.instrument === '[percussion]' || hasDrumField;
+    const ch = isDrum ? 9 : Math.max(0, ((track.channel ?? 1) - 1) % 16);
+
+    // Track name
+    const name = track.name || '';
+    mVlq(ev, 0); ev.push(0xff, 0x03); mVlq(ev, name.length); mStr(ev, name);
+
+    // Program change (melodic only)
+    if (!isDrum && track.instrument) {
+      const prog = instrumentNameToProgram(track.instrument);
+      if (prog !== null) { mVlq(ev, 0); ev.push(0xc0 | ch, prog); }
+    }
+
+    // Build note-on / note-off event list
+    const events = [];
+    for (const n of (track.notes ?? [])) {
+      let noteNum, durTicks;
+
+      if (isDrum || n.drum !== undefined) {
+        noteNum  = drumNameToMidi(n.drum) ?? 36;
+        durTicks = Math.round(tpq * 0.25); // short fixed duration for drums
+      } else {
+        noteNum = noteNameToMidi(n.note);
+        if (noteNum === null) continue;
+        durTicks = Math.max(1, Math.round((n.duration_beats ?? 0.25) * tpq));
+      }
+
+      const tick = beatStringToTick(n.beat, tpq, ts);
+      events.push({ tick,             type: 'on',  note: noteNum, vel: n.velocity ?? 80 });
+      events.push({ tick: tick + durTicks, type: 'off', note: noteNum, vel: 0 });
+    }
+
+    // Sort ascending tick; note-offs before note-ons at same tick
+    events.sort((a, b) => a.tick - b.tick || (a.type === 'off' ? -1 : 1));
+
+    let prev = 0;
+    for (const e of events) {
+      mVlq(ev, e.tick - prev);
+      ev.push(e.type === 'on' ? (0x90 | ch) : (0x80 | ch), e.note, e.vel);
+      prev = e.tick;
+    }
+
+    mVlq(ev, 0); ev.push(0xff, 0x2f, 0x00); // end of track
+    return ev;
+  }
+
+  // ── Reverse lookups ───────────────────────────────────────────────────
+  function noteNameToMidi(name) {
+    if (!name) return null;
+    const m = name.match(/^([A-G])(#|b)?(-?\d+)$/);
+    if (!m) return null;
+    const base = { C:0, D:2, E:4, F:5, G:7, A:9, B:11 }[m[1]];
+    let pc = base + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
+    if (pc < 0) pc += 12;
+    if (pc > 11) pc -= 12;
+    return (parseInt(m[3]) + 1) * 12 + pc;
+  }
+
+  function drumNameToMidi(name) {
+    for (const [num, n] of Object.entries(GM_DRUMS)) {
+      if (n === name) return parseInt(num);
+    }
+    return null;
+  }
+
+  function instrumentNameToProgram(name) {
+    if (!name || name === '[percussion]') return null;
+    const idx = GM_INSTRUMENTS.indexOf(name);
+    return idx >= 0 ? idx : null;
+  }
+
+  function beatStringToTick(beatStr, tpq, ts) {
+    if (!beatStr) return 0;
+    const [mPart, bPart] = beatStr.split(':');
+    const measure  = parseInt(mPart)    || 1;
+    const beatFrac = parseFloat(bPart)  || 1;
+    const ticksPerBar = tpq * ts.numerator * (4 / ts.denominator);
+    return Math.round((measure - 1) * ticksPerBar + (beatFrac - 1) * tpq);
+  }
+
+  // ── MIDI byte helpers ─────────────────────────────────────────────────
+  function mVlq(arr, v) {
+    const buf = [v & 0x7f];
+    v >>>= 7;
+    while (v > 0) { buf.push((v & 0x7f) | 0x80); v >>>= 7; }
+    buf.reverse();
+    for (const b of buf) arr.push(b);
+  }
+
+  function mStr(arr, s) {
+    for (let i = 0; i < s.length; i++) arr.push(s.charCodeAt(i) & 0xff);
+  }
+
+  function mU32(arr, v) { arr.push((v>>>24)&0xff, (v>>>16)&0xff, (v>>>8)&0xff, v&0xff); }
+  function mU16(arr, v) { arr.push((v>>8)&0xff, v&0xff); }
+
+  // ── Musical helpers ───────────────────────────────────────────────────
   function calcBars(midi, ts) {
     const totalTicks  = Math.max(0, ...midi.tracks.map(t => t.endTick));
     const ticksPerBar = midi.tpq * ts.numerator * (4 / ts.denominator);
@@ -274,7 +450,7 @@
     return `${s.endsWith('0') ? s.slice(0, -1) : s} ${suffix}`;
   }
 
-  // ── Display helpers ──────────────────────────────────────────────────────
+  // ── Display helpers ───────────────────────────────────────────────────
   function showSummary(text) {
     summaryPlaceholder.hidden = true;
     summaryOutput.hidden      = false;
@@ -283,11 +459,13 @@
   }
 
   function showJson(text) {
-    jsonPlaceholder.hidden = true;
-    jsonOutput.hidden      = false;
-    jsonOutput.textContent = text;
-    copyJson.disabled      = false;
-    downloadJson.disabled  = false;
+    jsonPlaceholder.hidden   = true;
+    jsonOutput.hidden        = false;
+    jsonOutput.textContent   = text;
+    copyJson.disabled        = false;
+    downloadJsonBtn.disabled = false;
+    jsonInput.value          = text; // auto-populate export textarea
+    setExportStatus('');
   }
 
   function showError(msg) {
@@ -314,10 +492,12 @@
     jsonPlaceholder.textContent    = 'Load a MIDI file to see the JSON summary.';
     copySummary.disabled           = true;
     copyJson.disabled              = true;
-    downloadJson.disabled          = true;
+    downloadJsonBtn.disabled       = true;
+    jsonInput.value                = '';
+    setExportStatus('');
   }
 
-  // ── MIDI Parser ──────────────────────────────────────────────────────────
+  // ── MIDI Parser ───────────────────────────────────────────────────────
   function parseMidiBuffer(buffer) {
     const bytes = new Uint8Array(buffer);
     let i = 0;
@@ -334,7 +514,7 @@
     };
 
     if (str(4) !== 'MThd') throw new Error('Not a MIDI file — missing MThd header');
-    u32(); // header length (always 6)
+    u32();
     const format  = u16();
     const ntracks = u16();
     const tpq     = u16();
@@ -358,46 +538,38 @@
         const peek = bytes[i];
 
         if (peek === 0xff) {
-          // ── Meta event ──────────────────────────────────────────────
           i++;
           const type = u8();
           const len  = vlq();
           const end  = i + len;
 
           switch (type) {
-            case 0x03: track.name    = str(len); break;  // track name
-            case 0x20: track.channel = u8();     break;  // channel prefix
-            case 0x51: {                                  // tempo
+            case 0x03: track.name    = str(len); break;
+            case 0x20: track.channel = u8();     break;
+            case 0x51: {
               const us = (bytes[i]<<16)|(bytes[i+1]<<8)|bytes[i+2];
               result.tempos.push({ tick, bpm: Math.round(60000000 / us * 10) / 10, uspqn: us });
               break;
             }
-            case 0x58: {                                  // time signature
-              const num = u8();
-              const den = 1 << u8();
-              u8(); u8(); // clocks-per-click, 32nds-per-quarter (unused)
+            case 0x58: {
+              const num = u8(); const den = 1 << u8(); u8(); u8();
               result.timeSigs.push({ tick, numerator: num, denominator: den });
               break;
             }
-            case 0x59: {                                  // key signature
-              const sf = si8();
-              const mi = u8();
+            case 0x59: {
+              const sf = si8(); const mi = u8();
               result.keySigs.push({ tick, sf, mi, label: keyLabel(sf, mi) });
               break;
             }
           }
 
           i = end;
-          if (type === 0x2f) { i = trkEnd; break; }      // end of track
+          if (type === 0x2f) { i = trkEnd; break; }
 
         } else if (peek === 0xf0 || peek === 0xf7) {
-          // ── SysEx ───────────────────────────────────────────────────
-          i++;
-          i += vlq();
-          rs = 0;
+          i++; i += vlq(); rs = 0;
 
         } else {
-          // ── Channel event ────────────────────────────────────────────
           if (peek & 0x80) { rs = peek; i++; }
           const type = rs & 0xf0;
           const ch   = rs & 0x0f;
@@ -406,8 +578,7 @@
           switch (type) {
             case 0x80:
             case 0x90: {
-              const note = u8();
-              const vel  = u8();
+              const note = u8(); const vel = u8();
               const key  = `${ch}-${note}`;
               if (type === 0x90 && vel > 0) {
                 pending[key] = { tick, velocity: vel };
@@ -420,9 +591,9 @@
               }
               break;
             }
-            case 0xc0: track.program = u8();       break; // program change
-            case 0xa0: case 0xb0: case 0xe0: i+=2; break; // 2-byte params
-            case 0xd0:                       i+=1; break; // 1-byte param
+            case 0xc0: track.program = u8();       break;
+            case 0xa0: case 0xb0: case 0xe0: i+=2; break;
+            case 0xd0:                       i+=1; break;
             default: rs = 0;
           }
         }
@@ -435,14 +606,14 @@
     return result;
   }
 
-  // ── Key label ────────────────────────────────────────────────────────────
+  // ── Key label ─────────────────────────────────────────────────────────
   function keyLabel(sf, mi) {
     const maj = ['Cb','Gb','Db','Ab','Eb','Bb','F','C','G','D','A','E','B','F#','C#'];
     const min = ['Ab','Eb','Bb','F','C','G','D','A','E','B','F#','C#','G#','D#','A#'];
     return (mi === 0 ? maj[sf + 7] : min[sf + 7]) + (mi === 0 ? ' major' : ' minor');
   }
 
-  // ── Utilities ────────────────────────────────────────────────────────────
+  // ── Utilities ─────────────────────────────────────────────────────────
   function isMidi(name) { return /\.midi?$/i.test(name); }
 
   function copyText(text) {

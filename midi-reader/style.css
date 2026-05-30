@@ -331,6 +331,67 @@ h1 {
   cursor: not-allowed;
 }
 
+/* ===== EXPORT SECTION ===== */
+.export-info {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.export-info code {
+  color: var(--accent);
+  background: var(--bg-deep);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  border: 1px solid var(--border-muted);
+}
+
+.json-input {
+  width: 100%;
+  min-height: 240px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  padding: 1rem;
+  resize: vertical;
+  transition: border-color 0.2s;
+  display: block;
+}
+
+.json-input:focus {
+  outline: none;
+  border-color: var(--border-accent);
+}
+
+.json-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.export-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  gap: 1rem;
+}
+
+.export-status {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.export-status.success { color: var(--accent); }
+.export-status.error   { color: #ff6b6b; }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 900px) {
   .output-grid {

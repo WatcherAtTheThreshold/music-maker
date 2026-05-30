@@ -66,6 +66,20 @@
       </div>
 
     </div>
+
+    <!-- JSON → MIDI Export -->
+    <div class="section">
+      <div class="section-title">Export JSON → MIDI</div>
+      <div class="section-content">
+        <p class="export-info">Load a MIDI above and the JSON appears here automatically — or paste any JSON summary to export it as a <code>.mid</code> file.</p>
+        <textarea class="json-input" id="jsonInput" spellcheck="false" placeholder='{ "tempo_bpm": 120, "time_signature": "4/4", "tracks": [ ... ] }'></textarea>
+        <div class="export-controls">
+          <span class="export-status" id="exportStatus"></span>
+          <button class="action-btn" id="exportMidi">Export .mid</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script src="script.js"></script>
