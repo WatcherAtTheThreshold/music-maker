@@ -160,7 +160,7 @@ h1 {
 /* ===== CONTROLS GRID (Card Layout) ===== */
 .controls-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
 }
 
@@ -262,6 +262,22 @@ h1 {
   box-shadow: 0 0 20px var(--accent-primary-dim);
 }
 
+.control-group:nth-child(4) .pattern-button {
+  border-color: rgba(126, 207, 232, 0.5);
+  color: #7ecfe8;
+}
+
+.control-group:nth-child(4) .pattern-button:hover {
+  background: rgba(126, 207, 232, 0.15);
+  border-color: #7ecfe8;
+  box-shadow: 0 0 20px rgba(126, 207, 232, 0.5);
+}
+
+.control-group:nth-child(4):hover {
+  border-color: rgba(126, 207, 232, 0.3);
+  box-shadow: 0 0 24px rgba(126, 207, 232, 0.15);
+}
+
 /* ===== FOOTER ===== */
 .footer {
   text-align: center;
@@ -284,6 +300,6 @@ h1 {
 
 @media (min-width: 1200px) {
   .controls-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
