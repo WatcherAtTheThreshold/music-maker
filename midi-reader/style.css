@@ -332,6 +332,10 @@ h1 {
 }
 
 /* ===== EXPORT SECTION ===== */
+.export-section {
+  margin-top: 3rem;
+}
+
 .export-info {
   font-family: var(--font-mono);
   font-size: 0.82rem;
@@ -367,6 +371,12 @@ h1 {
 .json-input:focus {
   outline: none;
   border-color: var(--border-accent);
+}
+
+.json-input.drag-over {
+  border-color: var(--accent);
+  background: rgba(126, 207, 232, 0.08);
+  box-shadow: 0 0 24px var(--accent-dim);
 }
 
 .json-input::placeholder {

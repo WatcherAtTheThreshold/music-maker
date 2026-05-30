@@ -148,6 +148,36 @@
     exportStatus.className   = 'export-status' + (type ? ' ' + type : '');
   }
 
+  // Drag-and-drop .json files onto the export textarea
+  jsonInput.addEventListener('dragover', (e) => {
+    if ([...e.dataTransfer.types].includes('Files')) {
+      e.preventDefault();
+      jsonInput.classList.add('drag-over');
+    }
+  });
+
+  jsonInput.addEventListener('dragleave', () => {
+    jsonInput.classList.remove('drag-over');
+  });
+
+  jsonInput.addEventListener('drop', (e) => {
+    jsonInput.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      e.preventDefault();
+      setExportStatus('Drop a .json file here.', 'error');
+      return;
+    }
+    e.preventDefault();
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      jsonInput.value = ev.target.result;
+      setExportStatus('Loaded ' + file.name, 'success');
+    };
+    reader.readAsText(file);
+  });
+
   // ── File loading ──────────────────────────────────────────────────────
   function loadFile(file) {
     fileNameEl.textContent = file.name;
