@@ -339,6 +339,13 @@ let sidechainCompressor = {};
 let loop;
 let arpLoop;
 
+// Map a 0-100 slider to decibels (0 = silence, 100 = full volume).
+// Tone volume params are in dB, so a linear 0-1 gain must be converted.
+function sliderToDb(value) {
+  const v = parseInt(value, 10);
+  return v <= 0 ? -Infinity : Tone.gainToDb(v / 100);
+}
+
 async function initializeAudio() {
   if (isInitialized) return;
   
@@ -503,6 +510,15 @@ async function initializeAudio() {
       synths.lead.triggerAttackRelease(noteWithOctave, getArpNoteDuration(), time, normalizedVelocity);
     }
   }, getArpNoteDuration());
+
+  // Apply the mixer sliders' current values (synths otherwise start at 0 dB
+  // regardless of what the sliders show)
+  allTracks.forEach(track => {
+    const slider = document.getElementById(`${track}Volume`);
+    if (slider) synths[track].volume.value = sliderToDb(slider.value);
+  });
+  const masterSlider = document.getElementById('masterVolume');
+  if (masterSlider) Tone.Destination.volume.value = sliderToDb(masterSlider.value);
 
   isInitialized = true;
 }
@@ -773,7 +789,8 @@ function clearMelodyStep(track, stepIndex) {
 
 // Edit step velocity
 function editStepVelocity(track, stepIndex, event) {
-  const rect = event.target.getBoundingClientRect();
+  // currentTarget = the step cell; target may be a child (velocity bar, note text)
+  const rect = event.currentTarget.getBoundingClientRect();
   const y = event.clientY - rect.top;
   const height = rect.height;
   const velocity = Math.max(1, Math.min(127, Math.round((1 - y / height) * 127)));
@@ -867,10 +884,11 @@ function initializeSequencers() {
 function loadDefaultPattern() {
   const pattern = patterns[0];
 
-  // Default drum pattern
-  pattern.kick = [70,0,0,0, 70,0,0,0, 70,0,0,0, 70,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
-  pattern.snare = [0,0,0,0, 70,0,0,0, 0,0,0,0, 70,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
-  pattern.hihat = [50,0,50,0, 50,0,50,0, 50,0,50,0, 50,0,50,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
+  // Default drum pattern — fills all 32 steps so the default
+  // loop doesn't go silent halfway through
+  pattern.kick  = [70,0,0,0, 70,0,0,0, 70,0,0,0, 70,0,0,0, 70,0,0,0, 70,0,0,0, 70,0,0,0, 70,0,0,0];
+  pattern.snare = [0,0,0,0, 70,0,0,0, 0,0,0,0, 70,0,0,0, 0,0,0,0, 70,0,0,0, 0,0,0,0, 70,0,0,0];
+  pattern.hihat = [50,0,50,0, 50,0,50,0, 50,0,50,0, 50,0,50,0, 50,0,50,0, 50,0,50,0, 50,0,50,0, 50,0,50,0];
 
   // Default melody pattern
   const scale = scales[currentKey];
@@ -878,10 +896,16 @@ function loadDefaultPattern() {
   pattern.bass[4] = { note: scale[2], velocity: 70 };
   pattern.bass[8] = { note: scale[4], velocity: 80 };
   pattern.bass[12] = { note: scale[2], velocity: 70 };
+  pattern.bass[16] = { note: scale[0], velocity: 80 };
+  pattern.bass[20] = { note: scale[3], velocity: 70 };
+  pattern.bass[24] = { note: scale[4], velocity: 80 };
+  pattern.bass[28] = { note: scale[2], velocity: 70 };
 
   // Default pad pattern (chords on beats)
   pattern.pad[0] = { note: scale[0], velocity: 60 };
   pattern.pad[8] = { note: scale[4], velocity: 55 };
+  pattern.pad[16] = { note: scale[3], velocity: 60 };
+  pattern.pad[24] = { note: scale[4], velocity: 55 };
 }
 
 // Event Listeners
@@ -945,8 +969,7 @@ const masterVolumeValue = document.getElementById('masterVolumeValue');
 
 masterVolume.addEventListener('input', async (e) => {
   if (!isInitialized) await initializeAudio();
-  const volume = (e.target.value / 100) * 0.7 - 0.3;
-  Tone.Destination.volume.value = volume;
+  Tone.Destination.volume.value = sliderToDb(e.target.value);
   masterVolumeValue.textContent = e.target.value;
 });
 
@@ -1013,8 +1036,7 @@ allTracks.forEach(track => {
   if (slider) {
     slider.addEventListener('input', async (e) => {
       if (!isInitialized) await initializeAudio();
-      const volume = (e.target.value / 100) * 0.5 - 0.2;
-      synths[track].volume.value = volume;
+      synths[track].volume.value = sliderToDb(e.target.value);
     });
   }
 });
@@ -1331,9 +1353,10 @@ document.addEventListener('keydown', (e) => {
     document.getElementById('playButton').click();
   }
   
-  if (e.key === 'v' || e.key === 'V') {
-    isEditingVelocity = !isEditingVelocity;
-    document.body.style.cursor = isEditingVelocity ? 'crosshair' : 'default';
+  // Hold V for velocity mode (e.repeat guard: held keys auto-repeat keydown)
+  if ((e.key === 'v' || e.key === 'V') && !e.repeat) {
+    isEditingVelocity = true;
+    document.body.style.cursor = 'crosshair';
   }
 });
 
