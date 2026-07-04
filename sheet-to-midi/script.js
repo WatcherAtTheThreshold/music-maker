@@ -627,9 +627,10 @@
       generateFantasyRightHand();
       generateFantasyBass();
     } else if (mode === 'lofi') {
-      generateLofiMelody();
-      generateLofiRightHand();
-      generateLofiBass();
+      const progression = buildLofiProgression();
+      generateLofiMelody(progression);
+      generateLofiRightHand(progression);
+      generateLofiBass(progression);
     } else if (mode === 'adventure') {
       generateAdventureMelody();
       generateAdventureRightHand();
@@ -1040,7 +1041,50 @@
 
   /* === LO-FI / NUJABES GENERATION === */
 
-  function generateLofiMelody() {
+  // Shared harmony for all three lo-fi staves: one chord per 2-beat slot.
+  // Each entry pairs a bass root with the RH voicing of the SAME chord,
+  // so the staves can never disagree. Am7 / Dm7 / Fmaj7 / G7 / Em7 / Cmaj7.
+  function buildLofiProgression() {
+    const off = getKeyOffset();
+    const poolsBySection = {
+      establish: [
+        { root: 45, voicing: [69, 72, 76, 79] },  // Am7
+        { root: 50, voicing: [62, 65, 69, 72] }   // Dm7
+      ],
+      vary: [
+        { root: 53, voicing: [65, 69, 72, 76] },  // Fmaj7
+        { root: 55, voicing: [67, 71, 74, 77] }   // G7
+      ],
+      contrast: [
+        { root: 52, voicing: [64, 67, 71, 74] },  // Em7
+        { root: 48, voicing: [60, 64, 67, 71] }   // Cmaj7
+      ],
+      resolve: [
+        { root: 50, voicing: [62, 65, 69, 72] },  // Dm7
+        { root: 45, voicing: [69, 72, 76, 79] }   // Am7
+      ]
+    };
+
+    const slots = [];
+    let prev = null;
+    for (let slot = 0; slot < TOTAL_BEATS / 2; slot++) {
+      const pool = poolsBySection[getPhraseSection(slot * 2)];
+      let pick;
+      if (slot % 2 === 1 && prev && Math.random() < 0.7) {
+        pick = prev; // usually hold the chord across the bar
+      } else {
+        pick = pool[Math.floor(Math.random() * pool.length)];
+        if (pick === prev && pool.length > 1 && Math.random() < 0.6) {
+          pick = pool.find(c => c !== prev);
+        }
+      }
+      slots.push({ root: pick.root + off, voicing: transposeArr(pick.voicing, off) });
+      prev = pick;
+    }
+    return slots;
+  }
+
+  function generateLofiMelody(prog) {
     const LOFI_MELODY = transposeArr([60, 62, 64, 65, 67, 69, 70, 71, 72, 74, 76, 77, 79, 81], getKeyOffset());
     const pentatonicIndices = [0, 1, 2, 4, 5, 8, 9, 10, 12];
 
@@ -1092,6 +1136,24 @@
           lastIndex += lastIndex > target ? -1 : (lastIndex < target ? 1 : 0);
         }
 
+        // Chord-tone gravity: on strong beats, half the time pull the melody
+        // to the nearest scale note belonging to the chord sounding underneath
+        const slot = Math.floor(currentBeat / 2);
+        if (currentBeat % 2 < 0.001 && prog[slot] && Math.random() < 0.5) {
+          const chordPCs = new Set(prog[slot].voicing.map(v => ((v % 12) + 12) % 12));
+          let best = lastIndex;
+          let bestDist = Infinity;
+          for (let i = 0; i < LOFI_MELODY.length; i++) {
+            const d = Math.abs(i - lastIndex);
+            if (d < bestDist && chordPCs.has(((LOFI_MELODY[i] % 12) + 12) % 12)) {
+              best = i;
+              bestDist = d;
+            }
+          }
+          lastIndex = best;
+          lastWasPentatonic = pentatonicIndices.includes(lastIndex);
+        }
+
         const midi      = LOFI_MELODY[lastIndex];
         const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
 
@@ -1103,19 +1165,11 @@
     }
   }
 
-  function generateLofiRightHand() {
-    const chordsBySection = transposeChords({
-      establish: [[69, 72, 76, 79], [62, 65, 69, 72]],
-      vary:      [[65, 69, 72, 76], [67, 71, 74, 77]],
-      contrast:  [[64, 67, 71, 74], [60, 64, 67, 71]],
-      resolve:   [[62, 65, 69, 72], [69, 72, 76, 79]]
-    }, getKeyOffset());
-
+  function generateLofiRightHand(prog) {
     let currentBeat = 0;
 
     while (currentBeat < TOTAL_BEATS) {
       const section = getPhraseSection(currentBeat);
-      const chords  = chordsBySection[section];
 
       let skipChance = 0.15;
       if (section === 'establish') skipChance = 0.25;
@@ -1126,7 +1180,7 @@
         continue;
       }
 
-      const chord     = chords[Math.floor(Math.random() * chords.length)];
+      const chord     = prog[Math.floor(currentBeat / 2)].voicing;
       const dur       = section === 'resolve' ? 4 : 2;
       const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
 
@@ -1142,10 +1196,12 @@
 
       const offset    = Math.random() < 0.3 ? -0.5 : 0;
       const chordBeat = Math.max(0, currentBeat + offset);
+      // Anticipated chords keep their original end point (no gap before the next chord)
+      const chordDur  = Math.min(actualDur + (currentBeat - chordBeat), TOTAL_BEATS - chordBeat);
 
       for (const midi of voicing) {
-        if (chordBeat >= 0 && chordBeat < TOTAL_BEATS) {
-          notes.push({ id: nextId++, midi, startBeat: chordBeat, durBeats: Math.min(actualDur, TOTAL_BEATS - chordBeat), accidental: 0, staffIndex: 1 });
+        if (chordBeat < TOTAL_BEATS && chordDur > 0) {
+          notes.push({ id: nextId++, midi, startBeat: chordBeat, durBeats: chordDur, accidental: 0, staffIndex: 1 });
         }
       }
 
@@ -1153,34 +1209,30 @@
     }
   }
 
-  function generateLofiBass() {
-    const bassRoots = transposeRoots({
-      establish: [45, 50],
-      vary:      [53, 55],
-      contrast:  [52, 48],
-      resolve:   [50, 45]
-    }, getKeyOffset());
-
+  function generateLofiBass(prog) {
     let currentBeat = 0;
 
     while (currentBeat < TOTAL_BEATS) {
       const section = getPhraseSection(currentBeat);
-      const roots   = bassRoots[section];
 
       let dur = section === 'resolve' ? 2 : (Math.random() < 0.6 ? 1 : 2);
 
       const actualDur = Math.min(dur, TOTAL_BEATS - currentBeat);
       if (actualDur <= 0) break;
 
-      const targetRoot = roots[Math.floor(Math.random() * roots.length)];
+      const slot     = Math.floor(currentBeat / 2);
+      const chord    = prog[slot];
+      const nextSlot = Math.floor((currentBeat + dur) / 2);
+      const crossing = nextSlot > slot && nextSlot < prog.length && prog[nextSlot].root !== chord.root;
+
       let midi;
-      const roll = Math.random();
-      if (roll < 0.5) {
-        midi = targetRoot;
-      } else if (roll < 0.75) {
-        midi = targetRoot + 7;
+      if (crossing && Math.random() < 0.35) {
+        // Walking approach: slide chromatically into the next chord's root
+        midi = prog[nextSlot].root + (Math.random() < 0.5 ? -1 : 1);
+      } else if (Math.random() < 0.65) {
+        midi = chord.root;
       } else {
-        midi = targetRoot + (Math.random() < 0.5 ? -1 : 1);
+        midi = chord.root + 7;
       }
       midi = Math.max(36, Math.min(64, midi));
 
