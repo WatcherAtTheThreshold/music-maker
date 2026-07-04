@@ -149,13 +149,11 @@
       card.style.setProperty('--card-glow',  hexToRgba(mode.color, 0.22));
       card.style.setProperty('--card-bg',    hexToRgba(mode.color, 0.11));
 
-      const btnSrc = mode.id === selectedModeId ? 'images/button-pressed.png' : 'images/button-up.png';
       card.innerHTML = `
-        <img class="card-btn-img" src="${btnSrc}" alt="">
-        <div class="card-content">
-          <div class="card-emoji">${mode.emoji}</div>
-          <div class="card-name">${mode.name}</div>
-        </div>
+        <div class="card-emoji">${mode.emoji}</div>
+        <div class="card-name">${mode.name}</div>
+        <div class="card-vibe">${mode.vibe}</div>
+        <div class="card-key">${mode.key} &bull; ${mode.bpm} BPM</div>
       `;
 
       card.addEventListener('click', () => selectMode(mode.id));
@@ -171,16 +169,14 @@
     btnPressSound.play().catch(() => {});  // Silently ignore if autoplay blocked
 
     document.querySelectorAll('.mode-card').forEach(card => {
-      const isSelected = card.dataset.mode === modeId;
-      card.classList.toggle('selected', isSelected);
-      const img = card.querySelector('.card-btn-img');
-      if (img) img.src = isSelected ? 'images/button-pressed.png' : 'images/button-up.png';
+      card.classList.toggle('selected', card.dataset.mode === modeId);
     });
 
     const mode = MODES_DATA.find(m => m.id === modeId);
     const genBtn = document.getElementById('generateBtn');
     if (genBtn && mode) {
       genBtn.innerHTML = `&#10022; GENERATE &mdash; ${mode.name}`;
+      genBtn.style.setProperty('--gen-color', mode.color);
     }
 
     // Each mode has a tempo it sounds best at — suggest it, user can still edit
