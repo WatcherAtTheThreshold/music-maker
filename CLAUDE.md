@@ -82,6 +82,7 @@ All three machines export MIDI files. The binary encoding is custom (no library)
 - TPQ = 480 ticks per quarter note
 - VLQ (variable-length quantity) encoding for delta times
 - Downloads via Blob URL
+- Sheet-to-midi exports per-note velocities (set by `applyGroove`); 8-bit and EDM export their own velocity values
 
 ## Conventions
 
@@ -94,17 +95,26 @@ All three machines export MIDI files. The binary encoding is custom (no library)
 
 ### Magic Generation (Sheet to MIDI)
 
-Nine modes, each with its own hardcoded native key. All scales/chords are transposed at generation time by `getKeyOffset()` — never stored as transposed values.
+Twelve modes, each with its own hardcoded native key and a suggested BPM (applied to the tempo input when its mode card is clicked). All scales/chords are transposed at generation time by `getKeyOffset()` — never stored as transposed values.
 
-| Mode | Native root | `#keyShift` to reach C |
-|------|------------|------------------------|
-| Phrase / Loop / Drift | C major | 0 |
-| Victory | C major | 0 |
-| Lo-fi | C jazz/blues | 0 |
-| Fantasy | D Dorian | −2 |
-| Mystic | D Dorian | −2 |
-| Boss Battle | D Phrygian | −2 |
-| Adventure | E minor | −4 |
+| Mode | Native root | `#keyShift` to reach C | Suggested BPM |
+|------|------------|------------------------|---------------|
+| Phrase | C major | 0 | 100 |
+| Cozy | G major | +5 | 84 |
+| Drift | C major | 0 | 72 |
+| Fantasy | D Dorian | −2 | 96 |
+| Lo-fi | C jazz/blues | 0 | 78 |
+| Adventure | E minor | −4 | 128 |
+| Boss Battle | D Phrygian | −2 | 140 |
+| Mystic | D Dorian | −2 | 60 |
+| Victory | C major | 0 | 120 |
+| Space Drift | C minor | 0 | 66 |
+| Space Fight | C Phrygian | 0 | 132 |
+| Space Victory | C major | 0 | 116 |
+
+**Groove/humanization:** `applyGroove(modeId)` runs as a post-pass after every generation. It assigns per-note `velocity` (accented beats 1 & 3, softer off-beats, ±4 jitter; generators may pre-set velocity — e.g. lo-fi bass ghost notes at 52 — and the pass respects it) and applies swing to modes listed in `GROOVE_BY_MODE` (currently lo-fi, 0.14 beats ≈ 64% swing). Swung notes keep their end point so they never overlap the next downbeat. Velocity flows through both playback gain and MIDI export.
+
+**Lo-fi shared harmony:** `buildLofiProgression()` picks one chord per 2-beat slot (16 slots), pairing each bass root with the RH voicing of the same chord. All three lo-fi staves read from this progression — the bass adds chromatic approach notes into chord changes, and the melody gets pulled toward chord tones on strong beats. Other modes still generate staves independently.
 
 **Transposition utilities** (all in `sheet-to-midi/script.js`):
 - `getKeyOffset()` — reads `#keyShift` select (−6 to +6)
@@ -120,8 +130,8 @@ The native root labels are displayed directly in the Magic Mode `<select>` optio
 - Font URLs are loaded from Google Fonts CDN — pages need internet access
 - Tone.js is loaded from CDN in 8-bit and EDM but is NOT used in sheet-to-midi
 - The collapsible panel JS is in inline `<script>` tags, not in the main `script.js` files
-- Magic generation in sheet-to-midi uses beat-based durations (e.g., `durBeats: 1` = quarter note) — these must align with grid resolution when displayed
-- Scale constants (`DORIAN_MELODY`, `LOFI_MELODY`, etc.) are **function-local**, not module-level — they live inside their respective `generate*` functions and are transposed fresh on each Magic call
+- Magic generation in sheet-to-midi uses beat-based durations (e.g., `durBeats: 1` = quarter note) — note that swung modes (lo-fi) deliberately place off-beat notes off the straight grid (`applyGroove`)
+- Scale constants (`DORIAN_MELODY`, `LOFI_MELODY`, etc.) are **function-local**, not module-level — they live inside their respective `generate*` functions and are transposed fresh on each Magic call. Lo-fi chord/root data lives in `buildLofiProgression()`, not in the staff generators
 
 ## Docs
 

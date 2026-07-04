@@ -1,6 +1,6 @@
 /* ====================================================
    MIDI MAGIC — MIDI Forge Labs
-   One-click 8-bar MIDI generator with 9 Magic Modes
+   One-click 8-bar MIDI generator with 12 Magic Modes
    Generation engine: three-staff (Melody / Right Hand / Left Hand)
    ==================================================== */
 
@@ -228,12 +228,16 @@
     playOnce();
   }
 
-  function playOnce() {
+  function playOnce(startAt) {
     if (!isPlaying) return;
 
     const bpm = parseInt(document.getElementById('bpm').value, 10);
     const secPerBeat = 60 / bpm;
-    playbackStartTime = audio.currentTime + 0.05;
+    // Loop passes hand in an exact start time so passes are gapless;
+    // if the timer fired too late (throttled tab), fall back to "now"
+    playbackStartTime = (startAt !== undefined && startAt > audio.currentTime)
+      ? startAt
+      : audio.currentTime + 0.05;
     totalPlayDuration = TOTAL_BEATS * secPerBeat;
 
     for (const n of notes) {
@@ -242,9 +246,10 @@
     }
 
     if (isLooping) {
+      const nextStart = playbackStartTime + totalPlayDuration;
       playbackTimeout = setTimeout(() => {
-        if (isPlaying && isLooping) playOnce();
-      }, totalPlayDuration * 1000);
+        if (isPlaying && isLooping) playOnce(nextStart);
+      }, Math.max(0, (nextStart - audio.currentTime - 0.1) * 1000));
     } else {
       playbackTimeout = setTimeout(() => {
         if (isPlaying && !isLooping) stopPlayback();
@@ -411,10 +416,7 @@
   /* === MIDI EXPORT FUNCTIONS === */
 
   function exportMIDI() {
-    if (!notes.length) {
-      downloadBytes(new Uint8Array([]), 'empty.mid');
-      return;
-    }
+    if (!notes.length) return; // nothing to export
 
     const bpm = parseInt(document.getElementById('bpm').value, 10);
     const microPerQuarter = Math.round(60000000 / bpm);
@@ -678,52 +680,13 @@
     };
 
     const modeConfig = {
-      loop:   { restChance: 0.15, motifRepeat: true,  densityMultiplier: 1.2 },
-      phrase: { restChance: 0.2,  motifRepeat: false, densityMultiplier: 1.0 },
-      drift:  { restChance: 0.4,  motifRepeat: false, densityMultiplier: 0.6 }
+      phrase: { restChance: 0.2 },
+      drift:  { restChance: 0.4 }
     };
     const config = modeConfig[mode];
 
     let currentBeat = 0;
     let lastIndex   = Math.floor(scale.length / 2);
-    let motif       = [];
-
-    if (mode === 'loop') {
-      while (currentBeat < 8) {
-        const patterns = rhythmsBySection.establish;
-        const pattern  = patterns[Math.floor(Math.random() * patterns.length)];
-
-        for (const dur of pattern) {
-          if (currentBeat >= 8) break;
-
-          if (Math.random() < config.restChance) {
-            currentBeat += dur;
-            continue;
-          }
-
-          const step  = Math.random() < 0.5 ? -1 : 1;
-          const jump  = Math.floor(Math.random() * 2) + 1;
-          lastIndex   = Math.max(0, Math.min(scale.length - 1, lastIndex + step * jump));
-
-          const midi      = scale[lastIndex];
-          const actualDur = Math.min(dur, 8 - currentBeat);
-
-          if (actualDur > 0) {
-            notes.push({ id: nextId++, midi, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 0 });
-            motif.push({ midi, startBeat: currentBeat, durBeats: actualDur });
-          }
-          currentBeat += dur;
-        }
-      }
-
-      for (const repeatOffset of [8, 16, 24]) {
-        for (const m of motif) {
-          const newMidi = m.midi + (Math.random() < 0.2 ? (Math.random() < 0.5 ? 2 : -2) : 0);
-          notes.push({ id: nextId++, midi: Math.max(60, Math.min(81, newMidi)), startBeat: m.startBeat + repeatOffset, durBeats: m.durBeats, accidental: 0, staffIndex: 0 });
-        }
-      }
-      return;
-    }
 
     while (currentBeat < TOTAL_BEATS) {
       const section  = getPhraseSection(currentBeat);
@@ -769,30 +732,6 @@
       contrast:  [[69, 72, 76], [62, 65, 69]],
       resolve:   [[67, 71, 74], [60, 64, 67]]
     }, getKeyOffset());
-
-    if (mode === 'loop') {
-      const motif = [];
-      let currentBeat = 0;
-
-      while (currentBeat < 8) {
-        const chord     = chordProgressions.establish[Math.floor(Math.random() * 2)];
-        const dur       = 2;
-        const actualDur = Math.min(dur, 8 - currentBeat);
-
-        for (const midi of chord) {
-          motif.push({ midi, startBeat: currentBeat, durBeats: actualDur });
-          notes.push({ id: nextId++, midi, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 1 });
-        }
-        currentBeat += dur;
-      }
-
-      for (const repeatOffset of [8, 16, 24]) {
-        for (const m of motif) {
-          notes.push({ id: nextId++, midi: m.midi, startBeat: m.startBeat + repeatOffset, durBeats: m.durBeats, accidental: 0, staffIndex: 1 });
-        }
-      }
-      return;
-    }
 
     let currentBeat = 0;
 
@@ -842,33 +781,6 @@
       contrast:  [57, 50],
       resolve:   [55, 48]
     }, getKeyOffset());
-
-    if (mode === 'loop') {
-      const motif = [];
-      let currentBeat = 0;
-
-      while (currentBeat < 8) {
-        const root      = bassProgression.establish[Math.floor(Math.random() * 2)];
-        const dur       = 2;
-        const actualDur = Math.min(dur, 8 - currentBeat);
-
-        motif.push({ midi: root, startBeat: currentBeat, durBeats: actualDur });
-        notes.push({ id: nextId++, midi: root, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 2 });
-
-        if (currentBeat % 4 === 0 && root + 7 <= 64) {
-          motif.push({ midi: root + 7, startBeat: currentBeat, durBeats: actualDur });
-          notes.push({ id: nextId++, midi: root + 7, startBeat: currentBeat, durBeats: actualDur, accidental: 0, staffIndex: 2 });
-        }
-        currentBeat += dur;
-      }
-
-      for (const repeatOffset of [8, 16, 24]) {
-        for (const m of motif) {
-          notes.push({ id: nextId++, midi: m.midi, startBeat: m.startBeat + repeatOffset, durBeats: m.durBeats, accidental: 0, staffIndex: 2 });
-        }
-      }
-      return;
-    }
 
     let currentBeat = 0;
 
