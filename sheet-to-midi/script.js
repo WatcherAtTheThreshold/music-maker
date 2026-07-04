@@ -22,18 +22,18 @@
 
   /* === MODE DEFINITIONS === */
   const MODES_DATA = [
-    { id: 'phrase',    emoji: '✨', name: 'Phrase',      vibe: 'Evolving 8-bar arc',    key: 'C major',      color: '#7c9aff' },
-    { id: 'cozy',      emoji: '🌿', name: 'Cozy',        vibe: 'Pastoral & warm',       key: 'G major',      color: '#a8d87c' },
-    { id: 'drift',     emoji: '🌊', name: 'Drift',       vibe: 'Sparse & asymmetric',   key: 'C major',      color: '#50dde0' },
-    { id: 'fantasy',   emoji: '🏰', name: 'Fantasy',     vibe: 'Medieval, modal',        key: 'D Dorian',     color: '#ffd27c' },
-    { id: 'lofi',      emoji: '🎧', name: 'Lo-fi',       vibe: 'Jazzy Nujabes vibes',   key: 'C jazz/blues', color: '#c8a8ff' },
-    { id: 'adventure', emoji: '⚔️', name: 'Adventure',  vibe: 'Heroic & driving',      key: 'E minor',      color: '#7ee8a8' },
-    { id: 'boss',      emoji: '💀', name: 'Boss Battle', vibe: 'Dark & intense',         key: 'D Phrygian',   color: '#ff7c7c' },
-    { id: 'mystic',    emoji: '🌫️', name: 'Mystic',      vibe: 'Dark ambient, ritual',  key: 'D Dorian',     color: '#9a80ff' },
-    { id: 'victory',   emoji: '🏆', name: 'Victory',     vibe: 'Upbeat fanfare',        key: 'C major',      color: '#ffe87c' },
-    { id: 'spacedrift',  emoji: '🌌', name: 'Space Drift',  vibe: 'Floating, ethereal',   key: 'C minor',      color: '#5588cc' },
-    { id: 'spacefight',  emoji: '🚀', name: 'Space Fight',  vibe: 'Tense & driving',      key: 'C Phrygian',   color: '#cc4455' },
-    { id: 'spacevictory',emoji: '⭐', name: 'Space Victory',vibe: 'Triumphant & soaring', key: 'C major',      color: '#88ccff' },
+    { id: 'phrase',    emoji: '✨', name: 'Phrase',      vibe: 'Evolving 8-bar arc',    key: 'C major',      color: '#7c9aff', bpm: 100 },
+    { id: 'cozy',      emoji: '🌿', name: 'Cozy',        vibe: 'Pastoral & warm',       key: 'G major',      color: '#a8d87c', bpm: 84 },
+    { id: 'drift',     emoji: '🌊', name: 'Drift',       vibe: 'Sparse & asymmetric',   key: 'C major',      color: '#50dde0', bpm: 72 },
+    { id: 'fantasy',   emoji: '🏰', name: 'Fantasy',     vibe: 'Medieval, modal',        key: 'D Dorian',     color: '#ffd27c', bpm: 96 },
+    { id: 'lofi',      emoji: '🎧', name: 'Lo-fi',       vibe: 'Jazzy Nujabes vibes',   key: 'C jazz/blues', color: '#c8a8ff', bpm: 78 },
+    { id: 'adventure', emoji: '⚔️', name: 'Adventure',  vibe: 'Heroic & driving',      key: 'E minor',      color: '#7ee8a8', bpm: 128 },
+    { id: 'boss',      emoji: '💀', name: 'Boss Battle', vibe: 'Dark & intense',         key: 'D Phrygian',   color: '#ff7c7c', bpm: 140 },
+    { id: 'mystic',    emoji: '🌫️', name: 'Mystic',      vibe: 'Dark ambient, ritual',  key: 'D Dorian',     color: '#9a80ff', bpm: 60 },
+    { id: 'victory',   emoji: '🏆', name: 'Victory',     vibe: 'Upbeat fanfare',        key: 'C major',      color: '#ffe87c', bpm: 120 },
+    { id: 'spacedrift',  emoji: '🌌', name: 'Space Drift',  vibe: 'Floating, ethereal',   key: 'C minor',      color: '#5588cc', bpm: 66 },
+    { id: 'spacefight',  emoji: '🚀', name: 'Space Fight',  vibe: 'Tense & driving',      key: 'C Phrygian',   color: '#cc4455', bpm: 132 },
+    { id: 'spacevictory',emoji: '⭐', name: 'Space Victory',vibe: 'Triumphant & soaring', key: 'C major',      color: '#88ccff', bpm: 116 },
   ];
 
   /* === APPLICATION STATE === */
@@ -181,6 +181,12 @@
     const genBtn = document.getElementById('generateBtn');
     if (genBtn && mode) {
       genBtn.innerHTML = `&#10022; GENERATE &mdash; ${mode.name}`;
+    }
+
+    // Each mode has a tempo it sounds best at — suggest it, user can still edit
+    const bpmInput = document.getElementById('bpm');
+    if (bpmInput && mode && mode.bpm) {
+      bpmInput.value = mode.bpm;
     }
 
     generateRandomMelody();
