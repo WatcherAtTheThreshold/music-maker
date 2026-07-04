@@ -299,7 +299,8 @@
     osc.frequency.value = freq;
     osc.type = staff.waveform;
 
-    const baseVol = staff.waveform === 'sawtooth' ? 0.1 : 0.2;
+    const staffVol = staff.waveform === 'sawtooth' ? 0.1 : 0.2;
+    const baseVol  = staffVol * ((note.velocity || 96) / 96);
 
     gain.gain.setValueAtTime(0.0001, t0);
     gain.gain.exponentialRampToValueAtTime(baseVol, t0 + 0.01);
@@ -486,7 +487,7 @@
     for (const n of sortedNotes) {
       const onTick   = beatToTicks(n.startBeat);
       const offTick  = beatToTicks(n.startBeat + n.durBeats);
-      const velocity = 96;
+      const velocity = Math.max(1, Math.min(127, n.velocity || 96));
       const midiVal  = Math.max(0, Math.min(127, (n.midi + (n.accidental || 0)) | 0));
 
       allEvents.push({ tick: onTick,  type: 'on',  midi: midiVal, velocity });
@@ -571,6 +572,40 @@
     return 'resolve';
   }
 
+  /* === GROOVE / HUMANIZATION === */
+  // swing: how far off-beat eighths are pushed toward the next beat,
+  // in beats. 0.14 ≈ a 64% swing feel (straight = 50%, triplet = 67%).
+  const GROOVE_BY_MODE = {
+    lofi: { swing: 0.14 }
+  };
+
+  function applyGroove(modeId) {
+    const groove = GROOVE_BY_MODE[modeId] || {};
+    const swing = groove.swing || 0;
+
+    for (const n of notes) {
+      // Swing: delay off-beat eighths but keep the note's end point,
+      // so the following downbeat never gets overlapped
+      if (swing > 0 && Math.abs((n.startBeat % 1) - 0.5) < 0.001) {
+        n.startBeat += swing;
+        n.durBeats = Math.max(0.25, n.durBeats - swing);
+      }
+
+      // Velocity: accent beats 1 & 3, back off 2 & 4, softest off-beats.
+      // Generators may pre-set velocity (e.g. ghost notes) — respect it.
+      if (n.velocity == null) {
+        const posInBar = n.startBeat % 4;
+        let v;
+        if (posInBar % 2 < 0.001) v = 102;
+        else if (posInBar % 1 < 0.001) v = 92;
+        else v = 82;
+        if (n.staffIndex === 1) v -= 8; // chords sit behind the melody
+        v += Math.floor(Math.random() * 9) - 4;
+        n.velocity = Math.max(20, Math.min(127, v));
+      }
+    }
+  }
+
   function generateRandomMelody() {
     pushHistory();
     notes = [];
@@ -621,6 +656,7 @@
       generateBassStaff(mode);
     }
 
+    applyGroove(mode);
     updateCompositionInfo();
   }
 
@@ -1147,7 +1183,7 @@
       if (dur === 1 && Math.random() < 0.25 && midi + 12 <= 64) {
         const ghostBeat = currentBeat + 0.5;
         if (ghostBeat < TOTAL_BEATS) {
-          notes.push({ id: nextId++, midi: midi + 12, startBeat: ghostBeat, durBeats: 0.5, accidental: 0, staffIndex: 2 });
+          notes.push({ id: nextId++, midi: midi + 12, startBeat: ghostBeat, durBeats: 0.5, accidental: 0, staffIndex: 2, velocity: 52 });
         }
       }
 
